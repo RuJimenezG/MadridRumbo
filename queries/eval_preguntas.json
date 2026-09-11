@@ -1,0 +1,107 @@
+[
+  {
+    "id": "q01",
+    "pregunta": "¿Qué es la Tarjeta Azul y en qué medios de transporte es válida?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "crtm_faq.md",
+    "criterio_evidencia": "Debe mencionar que es para empadronados en Madrid y válida en Metro de Madrid y EMT."
+  },
+  {
+    "id": "q02",
+    "pregunta": "¿Qué documentación necesito para solicitar la Tarjeta Transporte Público Personal?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "crtm_faq.md",
+    "criterio_evidencia": "Debe listar foto, DNI/pasaporte y certificado de empadronamiento."
+  },
+  {
+    "id": "q03",
+    "pregunta": "¿Cuántas zonas tarifarias existen en el sistema de transporte de Madrid?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "crtm_billetes_tarifas.md",
+    "criterio_evidencia": "Debe responder 8 zonas (6 en Comunidad de Madrid, 2 en Castilla-La Mancha)."
+  },
+  {
+    "id": "q04",
+    "pregunta": "¿Puedo cambiar la zona del título ya cargado en mi tarjeta?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "crtm_faq.md",
+    "criterio_evidencia": "Debe explicar el procedimiento de cambio de zona en un título ya cargado."
+  },
+  {
+    "id": "q05",
+    "pregunta": "¿Qué pasa si cumplo 26 años mientras tengo cargado un abono de 30 días?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "crtm_faq.md",
+    "criterio_evidencia": "Debe decir que puede terminar de consumir la carga sin suplemento, y que el perfil se actualiza en la siguiente recarga."
+  },
+  {
+    "id": "q06",
+    "pregunta": "¿Cuánto cuesta emitir un duplicado de la tarjeta por extravío o robo?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "crtm_faq.md",
+    "criterio_evidencia": "Debe indicar 6 euros, salvo si el título era un Abono Anual (solo presencial)."
+  },
+  {
+    "id": "q07",
+    "pregunta": "¿Qué descuentos existen para familias numerosas o personas con discapacidad?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "crtm_billetes_tarifas.md",
+    "criterio_evidencia": "Debe mencionar que se aplican a cualquier billete salvo turísticos, Tarjeta Azul y gratuitos."
+  },
+  {
+    "id": "q08",
+    "pregunta": "¿Qué bonificaciones se mantienen en 2026 sobre el Abono Transporte y la Tarjeta Azul?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "crtm_billetes_tarifas.md",
+    "criterio_evidencia": "Debe citar el 40% para 26-64 años y Tarjeta Azul, y el 50% para el Abono 30 días Joven."
+  },
+  {
+    "id": "q09",
+    "pregunta": "Según la resolución oficial del CRTM, ¿se mantienen los precios del transporte público en 2026?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "bocm-20251231-precios_transporte.pdf",
+    "criterio_evidencia": "Debe confirmar que se mantienen los precios del segundo semestre de 2025."
+  },
+  {
+    "id": "q10",
+    "pregunta": "¿Qué incremento se aplica a las tarifas del transporte público en 2026 y qué excepciones hay?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "bocm-20251231-tarifas_transporte.pdf",
+    "criterio_evidencia": "Debe citar el incremento del 3%, excepto en el abono joven y el título 10 viajes de Castilla y León."
+  },
+  {
+    "id": "q11",
+    "pregunta": "¿En qué zona tarifaria se encuentra la parada de Plaza de Castilla?",
+    "tipo": "in-corpus",
+    "fuente_esperada": "Paradas CRTM.csv",
+    "criterio_evidencia": "Debe responder zona A, según el dato de zone_id de esa parada en el CSV."
+  },
+  {
+    "id": "q12",
+    "pregunta": "¿Cuánto cuesta un billete de metro en Barcelona?",
+    "tipo": "fuera-de-corpus",
+    "fuente_esperada": null,
+    "criterio_evidencia": "Debe abstenerse: el corpus solo cubre transporte de la Comunidad de Madrid."
+  },
+  {
+    "id": "q13",
+    "pregunta": "¿Qué requisitos pide la beca MEC para estudiantes universitarios?",
+    "tipo": "fuera-de-corpus",
+    "fuente_esperada": null,
+    "criterio_evidencia": "Debe abstenerse: fuera del dominio de transporte, pertenece a becas/trámites."
+  },
+  {
+    "id": "q14",
+    "pregunta": "¿Cuál es el horario de apertura de la estación de Atocha hoy?",
+    "tipo": "fuera-de-corpus",
+    "fuente_esperada": null,
+    "criterio_evidencia": "Debe abstenerse: el corpus no contiene horarios en tiempo real."
+  },
+  {
+    "id": "q15",
+    "pregunta": "¿Qué recomienda el CRTM para viajar en bicicleta por Madrid?",
+    "tipo": "fuera-de-corpus",
+    "fuente_esperada": null,
+    "criterio_evidencia": "Debe abstenerse: la intermodalidad con bicicleta no está documentada en el corpus curado."
+  }
+]
