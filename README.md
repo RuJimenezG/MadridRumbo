@@ -19,3 +19,28 @@ Todas las fuentes se han descargado el día 07/09/2026:
   - Scrapeada de la web.
 - https://www.crtm.es/media/sjqj4ggj/bocm-20251231-tarifas_transporte.pdf
 - https://www.crtm.es/media/s1qi0nmo/bocm-20251231-precios_transporte.pdf
+
+---
+
+## Proceso de carga e indexado:
+- ORQUESTADOR           -> pipeline.py - ✅
+- Cargar                -> load.py  - ✅
+- Limpiar y normalizar  -> clean.py - ✅
+- Chunk                 -> chunk.py - ✅
+- Embed                 -> embed.py - Pendiente
+- Index (ChromaDB)      -> index.py - Pendiente
+
+### Instrucciones
+
+Para generar los chunks:
+- Instalar dependencias
+```
+pip install -r requirements.txt
+```
+
+- Ejecutar desde el directorio principal:
+```
+python main.py --prepare
+```
+
+
