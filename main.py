@@ -7,11 +7,12 @@ Uso:
 import argparse
 
 from src.pipeline import ejecutar_ingesta
+from src.embed import ejecutar_embeddings
 
 def _cmd_prepare() -> None:
     ejecutar_ingesta()
     print()
-
+    ejecutar_embeddings()
 
 def main() -> None:
     """Ejecuta el comando solicitado desde la línea de comandos."""
