@@ -30,3 +30,9 @@ TOP_K = int(os.getenv("TOP_K", 4))
 # de los FAQ/PDFs de tarifas (quedaban solo trozos del CSV). Subido a 12000 para
 # cubrir el corpus actual (9.814 chunks) con margen.
 MAX_CHUNKS = int(os.getenv("MAX_CHUNKS", 12000))
+
+
+# --- Generación (Gemini) ---
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GENERATION_MODEL = "gemini-3.6-flash"
+TEMPERATURE = 0.0
