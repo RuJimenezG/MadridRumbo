@@ -1,26 +1,37 @@
-"""Generación de embeddings con Gemini.
+"""Generación de embeddings con OpenAI o Gemini.
 
 Lee output/chunks.json, convierte cada chunk en un vector y guarda
 output/embeddings.json. Expone embeddear_consulta() para el retriever.
 """
 
 import json
-# Módulo estándar para medir tiempos de ejecución. Se utiliza para calcular cuánto tarda Gemini en generar los embeddings.
 import time
 from pathlib import Path
+# SKU de Google Gemini
 from google import genai
 from google.genai import types
-# Importamos desde config.py todos los parámetros necesarios:
 from config import (
     CHUNKS_JSON,
     EMBED_BATCH_SIZE,
     EMBEDDING_MODEL,
     EMBEDDINGS_JSON,
     MAX_CHUNKS_EMBED,
-    EMBED_RPM_LIMIT
+    EMBED_RPM_LIMIT,
+    EMBEDDING_PROVIDER, 
+    EMBEDDING_MODEL_LOCAL, 
+    EMBEDDING_MODEL_OPENAI, 
+    OPENAI_API_KEY, 
+    CHROMA_DIR
 )
+_TFIDF_VECTORIZER_PATH = CHROMA_DIR / "tfidf_vectorizer.pkl"
 from .gemini_auth import configurar_gemini_api_key
+#
+from functools import lru_cache
+import sys
+import pickle
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+# Funciones para embeddings con Gemini
 def _extraer_vector(embedding_obj) -> list[float]: 
     # Dependiendo de cómo devuelva el SDK el embedding el vector puede venir almacenado en un atributo llamado "values". Si existe ese atributo, extraemos sus valores y los convertimos explícitamente en una lista de números float. 
     if hasattr(embedding_obj, "values"): 
@@ -156,3 +167,54 @@ def ejecutar_embeddings() -> tuple[list[dict], Path]:
     # 1. La lista de elementos con texto, embedding y metadata.
     # 2. La ruta del archivo embeddings.json generado.
     return items, EMBEDDINGS_JSON
+
+# Funciones para embeddings con OpenAI
+@lru_cache(maxsize=1)
+def _get_local_model():
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer(EMBEDDING_MODEL_LOCAL)
+
+
+def _tfidf_fit_and_save(texts: list[str]):
+    """Ajusta el vectorizador TF-IDF sobre el corpus completo y lo persiste en disco
+    para que las consultas posteriores (retrieve) usen el mismo espacio vectorial."""
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+    vectorizer = TfidfVectorizer(max_features=512)
+    vectorizer.fit(texts)
+    with open(_TFIDF_VECTORIZER_PATH, "wb") as f:
+        pickle.dump(vectorizer, f)
+    return vectorizer
+
+
+def _tfidf_load():
+    if not _TFIDF_VECTORIZER_PATH.exists():
+        raise RuntimeError(
+            "No existe un vectorizador TF-IDF ajustado. Ejecuta primero: python main.py --index"
+        )
+    with open(_TFIDF_VECTORIZER_PATH, "rb") as f:
+        return pickle.load(f)
+
+
+def embed_texts(texts: list[str], fit_tfidf: bool = False) -> list[list[float]]:
+    """Devuelve una lista de vectores de embedding, uno por texto de entrada.
+
+    `fit_tfidf`: si True y el proveedor es "tfidf", ajusta el vectorizador sobre
+    `texts` (se usa únicamente durante la indexación, con el corpus completo).
+    """
+    if EMBEDDING_PROVIDER == "openai":
+        import openai
+        client = openai.OpenAI(api_key=OPENAI_API_KEY)
+        resp = client.embeddings.create(model=EMBEDDING_MODEL_OPENAI, input=texts)
+        return [d.embedding for d in resp.data]
+    elif EMBEDDING_PROVIDER == "tfidf":
+        vectorizer = _tfidf_fit_and_save(texts) if fit_tfidf else _tfidf_load()
+        return vectorizer.transform(texts).toarray().tolist()
+    else:
+        model = _get_local_model()
+        return model.encode(texts, show_progress_bar=False).tolist()
+
+
+if __name__ == "__main__":
+    vecs = embed_texts(["¿Cuánto cuesta el Abono Joven?", "Zonas tarifarias de Madrid"])
+    print(f"Generados {len(vecs)} vectores de dimensión {len(vecs[0])}")

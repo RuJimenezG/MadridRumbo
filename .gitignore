@@ -19,5 +19,5 @@ __pycache__/
 Thumbs.db
 
 # Archivos muy grandes
-output/embeddings.json
-output/embeddings.zip
+output/embeddings-gemini.json
+output/embeddings-gemini.zip
