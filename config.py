@@ -47,4 +47,9 @@ TOP_K = int(os.getenv("TOP_K", 4))
 # chunks por sí solo. Con MAX_CHUNKS=500 se truncaba el índice perdiendo el 100%
 # de los FAQ/PDFs de tarifas (quedaban solo trozos del CSV). Subido a 12000 para
 # cubrir el corpus actual (9.814 chunks) con margen.
+
 MAX_CHUNKS = int(os.getenv("MAX_CHUNKS", 12000))
+
+# --- Generación (Gemini) ---
+GENERATION_MODEL = "gemini-3.6-flash"
+TEMPERATURE = 0.0
