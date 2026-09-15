@@ -17,27 +17,43 @@ from config import (
     EMBEDDINGS_JSON,
     MAX_CHUNKS_EMBED,
     EMBED_RPM_LIMIT,
-    EMBEDDING_PROVIDER, 
-    EMBEDDING_MODEL_LOCAL, 
-    EMBEDDING_MODEL_OPENAI, 
-    OPENAI_API_KEY, 
-    CHROMA_DIR
+    EMBEDDING_PROVIDER,
+    EMBEDDING_MODEL_OPENAI,
+    OPENAI_API_KEY,
+    EMBEDDING_MODEL_GEMINI,
+    GEMINI_API_KEY,
 )
-_TFIDF_VECTORIZER_PATH = CHROMA_DIR / "tfidf_vectorizer.pkl"
-from .gemini_auth import configurar_gemini_api_key
-#
-from functools import lru_cache
+
+# CORREGIDO (Persona 2): este import rompía TODO el fichero para cualquier
+# proveedor, no solo Gemini, porque falla al cargar el módulo (antes de llamar
+# a ninguna función). src/gemini_auth.py aún no existe en el repo. Lo hacemos
+# robusto con try/except para no bloquear al resto del equipo mientras se
+# termina ese fichero — @quien-lo-escribió: sustituye este bloque en cuanto
+# subas gemini_auth.py, o dime y lo integro.
+try:
+    from .gemini_auth import configurar_gemini_api_key
+except ImportError:
+    def configurar_gemini_api_key():
+        """Fallback temporal: no hace nada especial, genai.Client() ya puede
+        recibir la api_key directamente. Sustituir por la versión real de
+        gemini_auth.py en cuanto exista."""
+        pass
+
 import sys
-import pickle
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-# Funciones para embeddings con Gemini
-def _extraer_vector(embedding_obj) -> list[float]: 
-    # Dependiendo de cómo devuelva el SDK el embedding el vector puede venir almacenado en un atributo llamado "values". Si existe ese atributo, extraemos sus valores y los convertimos explícitamente en una lista de números float. 
-    if hasattr(embedding_obj, "values"): 
-        return list(embedding_obj.values) 
-    # Si el objeto ya es iterable directamente, lo convertimos igualmente en una lista. Esta segunda posibilidad hace que la función sea compatible con distintas representaciones del resultado. 
+# =====================================================================
+# Funciones de Gemini (pipeline chunks.json -> embeddings.json)
+# — código del compañero, sin tocar —
+# =====================================================================
+
+def _extraer_vector(embedding_obj) -> list[float]:
+    # Dependiendo de cómo devuelva el SDK el embedding el vector puede venir almacenado en un atributo llamado "values". Si existe ese atributo, extraemos sus valores y los convertimos explícitamente en una lista de números float.
+    if hasattr(embedding_obj, "values"):
+        return list(embedding_obj.values)
+    # Si el objeto ya es iterable directamente, lo convertimos igualmente en una lista. Esta segunda posibilidad hace que la función sea compatible con distintas representaciones del resultado.
     return list(embedding_obj)
+
 
 # Carga desde disco los chunks generados previamente por el pipeline de ingesta.
 def cargar_chunks_json() -> list[dict]:
@@ -63,7 +79,7 @@ def embeddear_textos(client: genai.Client, textos: list[str]) -> list[list[float
     # Recorremos los textos por lotes.
     for inicio in range(0, len(textos), EMBED_BATCH_SIZE):
         # Extraemos el lote correspondiente.
-        lote = textos[inicio : inicio + EMBED_BATCH_SIZE]
+        lote = textos[inicio: inicio + EMBED_BATCH_SIZE]
         # Lista de contenidos preparada para enviarse a la API.
         contents = [types.Content(parts=[types.Part(text=t)]) for t in lote]
         # Solicitamos a Gemini los embeddings del lote.
@@ -168,51 +184,60 @@ def ejecutar_embeddings() -> tuple[list[dict], Path]:
     # 2. La ruta del archivo embeddings.json generado.
     return items, EMBEDDINGS_JSON
 
-# Funciones para embeddings con OpenAI
-@lru_cache(maxsize=1)
-def _get_local_model():
-    from sentence_transformers import SentenceTransformer
-    return SentenceTransformer(EMBEDDING_MODEL_LOCAL)
+
+# =====================================================================
+# Mi parte (Persona 2): embed_texts() — interfaz usada por index.py/retrieve.py
+# Arquitectura ChromaDB, independiente del pipeline chunks.json de arriba.
+# Solo dos proveedores soportados: "openai" y "gemini".
+# =====================================================================
+
+def _embed_gemini_directo(texts: list[str]) -> list[list[float]]:
+    """
+    Gemini para embed_texts() (arquitectura ChromaDB), en lotes, respetando
+    EMBED_RPM_LIMIT. Usa GEMINI_API_KEY/EMBEDDING_MODEL_GEMINI directamente,
+    sin depender de gemini_auth.py, para no acoplarme al pipeline de arriba.
+    """
+    if not GEMINI_API_KEY:
+        raise RuntimeError("Falta GEMINI_API_KEY en el .env")
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    vectores: list[list[float]] = []
+
+    for inicio in range(0, len(texts), EMBED_BATCH_SIZE):
+        lote = texts[inicio: inicio + EMBED_BATCH_SIZE]
+        result = client.models.embed_content(model=EMBEDDING_MODEL_GEMINI, contents=lote)
+        vectores.extend(_extraer_vector(emb) for emb in result.embeddings)
+        if inicio + EMBED_BATCH_SIZE < len(texts):
+            time.sleep(60 * len(lote) / EMBED_RPM_LIMIT)
+
+    return vectores
 
 
-def _tfidf_fit_and_save(texts: list[str]):
-    """Ajusta el vectorizador TF-IDF sobre el corpus completo y lo persiste en disco
-    para que las consultas posteriores (retrieve) usen el mismo espacio vectorial."""
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
-    vectorizer = TfidfVectorizer(max_features=512)
-    vectorizer.fit(texts)
-    with open(_TFIDF_VECTORIZER_PATH, "wb") as f:
-        pickle.dump(vectorizer, f)
-    return vectorizer
-
-
-def _tfidf_load():
-    if not _TFIDF_VECTORIZER_PATH.exists():
-        raise RuntimeError(
-            "No existe un vectorizador TF-IDF ajustado. Ejecuta primero: python main.py --index"
-        )
-    with open(_TFIDF_VECTORIZER_PATH, "rb") as f:
-        return pickle.load(f)
+def _embed_openai(texts: list[str]) -> list[list[float]]:
+    if not OPENAI_API_KEY:
+        raise RuntimeError("Falta OPENAI_API_KEY en el .env")
+    import openai
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+    resp = client.embeddings.create(model=EMBEDDING_MODEL_OPENAI, input=texts)
+    return [d.embedding for d in resp.data]
 
 
 def embed_texts(texts: list[str], fit_tfidf: bool = False) -> list[list[float]]:
     """Devuelve una lista de vectores de embedding, uno por texto de entrada.
 
-    `fit_tfidf`: si True y el proveedor es "tfidf", ajusta el vectorizador sobre
-    `texts` (se usa únicamente durante la indexación, con el corpus completo).
+    Proveedores soportados: "openai" y "gemini" (EMBEDDING_PROVIDER en .env).
+    `fit_tfidf` se mantiene en la firma por compatibilidad con index.py, pero
+    no se usa (no hay proveedor tfidf en esta versión).
     """
-    if EMBEDDING_PROVIDER == "openai":
-        import openai
-        client = openai.OpenAI(api_key=OPENAI_API_KEY)
-        resp = client.embeddings.create(model=EMBEDDING_MODEL_OPENAI, input=texts)
-        return [d.embedding for d in resp.data]
-    elif EMBEDDING_PROVIDER == "tfidf":
-        vectorizer = _tfidf_fit_and_save(texts) if fit_tfidf else _tfidf_load()
-        return vectorizer.transform(texts).toarray().tolist()
+    if EMBEDDING_PROVIDER == "gemini":
+        return _embed_gemini_directo(texts)
+    elif EMBEDDING_PROVIDER == "openai":
+        return _embed_openai(texts)
     else:
-        model = _get_local_model()
-        return model.encode(texts, show_progress_bar=False).tolist()
+        raise ValueError(
+            f"EMBEDDING_PROVIDER={EMBEDDING_PROVIDER!r} no soportado. "
+            f"Usa 'openai' o 'gemini' en tu .env."
+        )
 
 
 if __name__ == "__main__":
