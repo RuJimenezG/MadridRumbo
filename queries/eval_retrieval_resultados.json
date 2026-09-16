@@ -1,0 +1,276 @@
+{
+  "1": [
+    {
+      "id": "q01",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q02",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q03",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q04",
+      "tipo": "in-corpus",
+      "match": true,
+      "fuentes_recuperadas": [
+        "crtm_faq.md"
+      ]
+    },
+    {
+      "id": "q05",
+      "tipo": "in-corpus",
+      "match": true,
+      "fuentes_recuperadas": [
+        "crtm_faq.md"
+      ]
+    },
+    {
+      "id": "q06",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q07",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q08",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q09",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q10",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q11",
+      "tipo": "in-corpus",
+      "match": true,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q12",
+      "tipo": "fuera-de-corpus",
+      "match": null,
+      "fuentes_recuperadas": [
+        "bocm-20251231-precios_transporte.pdf"
+      ]
+    },
+    {
+      "id": "q13",
+      "tipo": "fuera-de-corpus",
+      "match": null,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q14",
+      "tipo": "fuera-de-corpus",
+      "match": null,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q15",
+      "tipo": "fuera-de-corpus",
+      "match": null,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv"
+      ]
+    }
+  ],
+  "3": [
+    {
+      "id": "q01",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q02",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q03",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q04",
+      "tipo": "in-corpus",
+      "match": true,
+      "fuentes_recuperadas": [
+        "crtm_faq.md",
+        "crtm_faq.md",
+        "crtm_faq.md"
+      ]
+    },
+    {
+      "id": "q05",
+      "tipo": "in-corpus",
+      "match": true,
+      "fuentes_recuperadas": [
+        "crtm_faq.md",
+        "crtm_faq.md",
+        "bocm-20251231-precios_transporte.pdf"
+      ]
+    },
+    {
+      "id": "q06",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q07",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q08",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q09",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q10",
+      "tipo": "in-corpus",
+      "match": false,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q11",
+      "tipo": "in-corpus",
+      "match": true,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q12",
+      "tipo": "fuera-de-corpus",
+      "match": null,
+      "fuentes_recuperadas": [
+        "bocm-20251231-precios_transporte.pdf",
+        "bocm-20251231-tarifas_transporte.pdf",
+        "bocm-20251231-tarifas_transporte.pdf"
+      ]
+    },
+    {
+      "id": "q13",
+      "tipo": "fuera-de-corpus",
+      "match": null,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q14",
+      "tipo": "fuera-de-corpus",
+      "match": null,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    },
+    {
+      "id": "q15",
+      "tipo": "fuera-de-corpus",
+      "match": null,
+      "fuentes_recuperadas": [
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv",
+        "Paradas CRTM.csv"
+      ]
+    }
+  ]
+}
