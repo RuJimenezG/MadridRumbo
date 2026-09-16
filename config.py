@@ -11,6 +11,7 @@ CHUNK_OVERLAP = 100
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 CHROMA_DIR = BASE_DIR / "chroma"
+COLLECTION_NAME = "madridrumbo_transporte"
 QUERIES_DIR = BASE_DIR / "queries"
 
 OUTPUT_DIR = BASE_DIR / "output"
@@ -48,7 +49,7 @@ TOP_K = int(os.getenv("TOP_K", 4))
 # de los FAQ/PDFs de tarifas (quedaban solo trozos del CSV). Subido a 12000 para
 # cubrir el corpus actual (9.814 chunks) con margen.
 
-MAX_CHUNKS = int(os.getenv("MAX_CHUNKS", 12000))
+MAX_CHUNKS = int(os.getenv("MAX_CHUNKS", 25000))
 
 # --- Generación (Gemini) ---
 GENERATION_MODEL = "gemini-3.6-flash"
