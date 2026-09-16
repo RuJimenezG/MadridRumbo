@@ -72,3 +72,90 @@ Tokens totales: 2,836,469
 Media tokens/chunk: 126.12
 ´´´
 La facturación es de 0,20 $ por millon de tokens.
+
+# Parte 2: Embeddings, ChromaDB, Retrieval y conexión de `main.py`
+
+> **Persona 2 — MadridRumbo (Project Break RAG Engineering)**
+> Pipeline: `Chunk → Embeddings → ChromaDB → Retrieval → (main.py) → Generación`
+
+## Ficheros de los que soy responsable
+
+| Fichero | Descripción |
+|---|---|
+| `src/embed.py` (función `embed_texts()`) | Embeddings con proveedor intercambiable: `openai` o `gemini`, misma interfaz. |
+| `src/index.py` | Indexa los `Document` (de `chunk.py`) en ChromaDB persistente. `--recreate-index` para regenerar el índice. |
+| `src/retrieve.py` | Recupera los top-k chunks más relevantes y los formatea como contexto. |
+| `main.py` | CLI completa: `--prepare`, `--index`, `--query`, `--ask`. Conecta todo el pipeline. |
+| `config.py` (mi bloque) | `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL_OPENAI`, `EMBEDDING_MODEL_GEMINI`, `TOP_K`, `MAX_CHUNKS`, `COLLECTION_NAME`. |
+| `eval_retrieval.py` + `queries/eval_preguntas.json` | Evaluación de retrieval comparando distintos valores de K. |
+
+*(`src/embed.py` también contiene el pipeline de un compañero basado en `chunks.json`/`embeddings.json`; no es mío, no lo he tocado.)*
+
+## Cómo funciona el pipeline completo ahora
+
+```bash
+python main.py --prepare              # ingesta (load→clean→chunk) + embeddings.json (Gemini)
+python main.py --index                # (re)indexa el corpus en ChromaDB — offline
+python main.py --index --recreate-index
+python main.py --query "¿Qué es la Tarjeta Azul?"     # solo retrieval, sin LLM
+python main.py --ask "¿Qué es la Tarjeta Azul?"        # RAG completo (ChromaDB + Gemini)
+python main.py --ask "¿Qué es la Tarjeta Azul?" --k 6
+```
+
+```text
+Documentos → load+clean+chunk (Persona 1) → embed_texts() (yo) → ChromaDB (yo)
+                                                                       ↓
+                                                          retrieve() top-k (yo)
+                                                                       ↓
+                                                  generate() con Gemini (Persona 3) → respuesta
+```
+
+## Proveedores de embeddings
+
+Controlado por `EMBEDDING_PROVIDER` en `.env`:
+- **`openai`**: `text-embedding-3-small`. Requiere `OPENAI_API_KEY`.
+- **`gemini`**: `gemini-embedding-2`. Requiere `GEMINI_API_KEY`. En lotes de `EMBED_BATCH_SIZE`, con espera automática para no superar `EMBED_RPM_LIMIT`.
+
+## Los 7 bugs reales que encontré y corregí (en dos rondas)
+
+**Ronda 1 — embeddings/config:**
+1. `config.py` no importaba `os` ni llamaba a `load_dotenv()` → `NameError` en cualquier `os.getenv(...)`.
+2. Import roto `from .gemini_auth import configurar_gemini_api_key` en `embed.py` (el fichero no existía aún) → rompía la carga de *todo* el módulo. Corregido con `try/except`.
+3. CSV real con delimitador `;` y encoding Latin-1, no `,`/UTF-8.
+
+**Ronda 2 — integración de `main.py`:**
+4. `src/index.py` importaba la clase `Chunk`, que ya no existe (el `chunk.py` real usa `Document` de LangChain) → rompía en cascada `retrieve.py` y `generate.py`. Reescrito para trabajar con `Document`.
+5. `config.py` no tenía `COLLECTION_NAME`, que `index.py` necesita.
+6. `MAX_CHUNKS` insuficiente dos veces: primero 500→12.000, y de nuevo 12.000→25.000 al confirmar que el pipeline real genera **22.491 chunks** (22.404 solo del CSV, una fila = un chunk).
+7. `generate.py` creaba el cliente de Gemini al importar el módulo → bloqueaba `--prepare`/`--index`/`--query` sin `GEMINI_API_KEY`, aunque no se fuera a usar `--ask`. Solucionado con import en `main.py`.
+
+## Evaluación de retrieval
+
+```bash
+python eval_retrieval.py --k 1 3
+```
+
+| K | Aciertos in-corpus (de 11) |
+|---|---|
+| 1 | 4 |
+| 3 | 5 (con TF-IDF, solo como prueba de metodología) |
+
+**Pendiente:** repetir esta evaluación con `EMBEDDING_PROVIDER=openai` o `gemini` (el código final ya no incluye TF-IDF) para tener el número definitivo antes de la entrega.
+
+## Recomendación pendiente para el equipo
+
+Indexar las 22.404 paradas del CSV fila a fila es mucho volumen para un asistente de tarifas/abonos, y sube el coste/tiempo de generar embeddings. Vale la pena discutir si conviene agregar el CSV (por zona o línea) antes de indexar, en vez de una fila = un chunk.
+
+## Cómo probar mi parte
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env      # rellena OPENAI_API_KEY o GEMINI_API_KEY
+python main.py --index --recreate-index
+python main.py --ask "¿Qué es la Tarjeta Azul?"
+python eval_retrieval.py --k 1 3
+```
+
+## Estado
+
+✅ Completo: embeddings, ChromaDB, retrieval, y `main.py` conectando todo el ciclo `--prepare → --index → --ask`. Probado con la ingesta real (22.491 chunks) usando embeddings simulados (sin gastar cuota de API); pendiente de que el equipo lo valide con `GEMINI_API_KEY`/`OPENAI_API_KEY` reales antes de la entrega final.
