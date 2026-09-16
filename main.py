@@ -23,7 +23,7 @@ from src.retrieve import retrieve, format_context
 # CORREGIDO (Persona 2): "from src.generate import generate" aquí arriba
 # rompía --prepare, --index y --query sin GEMINI_API_KEY configurada, porque
 # generate.py crea el cliente de Gemini al importar el módulo (no dentro de
-# una función). Se importa de forma perezosa, solo dentro de _cmd_ask(),
+# una función). Se importa solo dentro de _cmd_ask(),
 # para que el resto de comandos funcionen sin esa clave.
 
 
