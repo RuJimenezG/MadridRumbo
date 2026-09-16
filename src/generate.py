@@ -1,6 +1,7 @@
-
-#Genera una respuesta usando SOLO el contexto recuperado.
-#Si no hay evidencia en los documentos del corpus, el modelo debe abstenerse.
+"""
+Genera una respuesta usando SOLO el contexto recuperado.
+Si no hay evidencia en los documentos del corpus, el modelo debe abstenerse.
+"""
 
 import sys
 from pathlib import Path

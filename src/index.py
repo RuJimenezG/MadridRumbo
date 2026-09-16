@@ -24,6 +24,29 @@ from langchain_core.documents import Document
 from config import CHROMA_DIR, COLLECTION_NAME, MAX_CHUNKS
 from src.embed import embed_texts
 
+import json
+from config import EMBEDDING_PROVIDER, EMBEDDING_MODEL_GEMINI, EMBEDDING_MODEL_OPENAI, OUTPUT_DIR
+
+#Reutiliza embeddings ya calculados en output/ (JSON) en vez de volver a llamar a la API cada vez que se indexa.
+#Solo se usa si el JSON existe, es del proveedor activo (EMBEDDING_PROVIDER)
+#y tiene el mismo número de chunks que el corpus actual. Si algo no cuadra
+#(corpus cambiado, otro modelo, provider distinto), se ignora y se calcula
+#en vivo como hasta ahora. No cambia nada para quien no tenga ese JSON.
+
+def _cargar_embeddings_json(texts):
+    modelo = EMBEDDING_MODEL_GEMINI if EMBEDDING_PROVIDER == "gemini" else EMBEDDING_MODEL_OPENAI
+    ruta = OUTPUT_DIR / f"embeddings-{EMBEDDING_PROVIDER}.json"
+
+    if not ruta.exists():
+        return None  # no hay JSON para este proveedor, seguir como antes
+
+    with open(ruta, encoding="utf-8") as f:
+        data = json.load(f)
+
+    if data.get("embedding_model") != modelo or len(data["items"]) != len(texts):
+        return None  # JSON no coincide con la config/corpus actual, no fiable
+
+    return [item["vector"] for item in data["items"]]
 
 def get_client():
     return chromadb.PersistentClient(path=str(CHROMA_DIR))
@@ -68,8 +91,11 @@ def index_chunks(chunks: list[Document], recreate: bool = False) -> int:
         for i, c in enumerate(chunks)
     ]
 
-    # Chroma requiere embeddings explícitos si no se configura un embedding_function propio.
-    embeddings = embed_texts(texts)
+    # AÑADIDO (Guzmán): usa el JSON precalculado si sirve; si no, calcula
+    # los embeddings como siempre. Ahorra llamadas a la API al reindexar.
+    embeddings = _cargar_embeddings_json(texts)
+    if embeddings is None:
+        embeddings = embed_texts(texts)
 
     # Indexar por lotes para evitar problemas de memoria en corpus grandes.
     batch_size = 64
