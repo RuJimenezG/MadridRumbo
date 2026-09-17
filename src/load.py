@@ -187,6 +187,62 @@ def cargar_paradas_csv(ruta: Path) -> list[Document]:
     # Devolvemos todos los Document creados a partir del CSV.
     return documentos
 
+def cargar_paradas_csv_por_zona(ruta: Path) -> list[Document]:
+    """Carga Paradas CRTM.csv agrupando todas las paradas por zona."""
+
+    df = pd.read_csv(
+        ruta,
+        sep=";",
+        encoding="latin-1",
+        dtype=str,
+    )
+
+    if MAX_FILAS_CSV is not None:
+        df = df.head(MAX_FILAS_CSV)
+
+    documentos: list[Document] = []
+
+    # Normalizamos la zona
+    df["zona_normalizada"] = (
+        df["zone_id"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.replace(r"^Zona\s+", "", regex=True)
+        .replace({"": "SIN_ZONA", "nan": "SIN_ZONA"})
+    )
+
+    for zona, grupo in df.groupby("zona_normalizada", sort=True):
+
+        paradas = []
+
+        for _, fila in grupo.iterrows():
+            texto = fila_parada_a_texto(fila)
+
+            if texto is not None:
+                paradas.append(texto)
+
+        if not paradas:
+            continue
+
+        contenido = (
+            f"Zona tarifaria: {zona}\n\n"
+            + "\n\n---\n\n".join(paradas)
+        )
+
+        documentos.append(
+            Document(
+                page_content=contenido,
+                metadata={
+                    "source": str(ruta),
+                    "tipo": "paradas_crtm_zona",
+                    "zona": zona,
+                    "num_paradas": len(paradas),
+                },
+            )
+        )
+
+    return documentos
 
 def cargar_archivo(ruta: Path) -> list[Document]:
     """Selecciona el loader adecuado según el tipo de archivo."""
@@ -210,7 +266,7 @@ def cargar_archivo(ruta: Path) -> list[Document]:
     # El CSV de paradas necesita un tratamiento específico.
     # No utilizamos un CSVLoader genérico porque queremos controlar exactamente cómo se transforma cada parada en texto y qué información se guarda en los metadatos.
     if sufijo in EXTENSIONES_CSV and ruta.name == CSV_PARADAS:
-        return cargar_paradas_csv(ruta)
+        return cargar_paradas_csv_por_zona(ruta)
 
     # Si el archivo no pertenece a ninguno de los formatos soportados, devolvemos una lista vacía.
     return []
