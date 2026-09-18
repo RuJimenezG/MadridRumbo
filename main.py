@@ -16,6 +16,10 @@ ChromaDB), sin --index el sistema nunca podía responder a --ask. Añadidos
 """
 import argparse
 
+import json
+from langchain_core.documents import Document
+from config import CHUNKS_JSON
+
 from src.pipeline import ejecutar_ingesta
 from src.embed import ejecutar_embeddings
 from src.index import index_chunks
@@ -33,10 +37,27 @@ def _cmd_prepare() -> None:
     print()
     ejecutar_embeddings()
 
+def cargar_chunks_json() -> list[Document]:
+    """Carga los chunks guardados en output/chunks.json como Documents."""
+    data = json.loads(CHUNKS_JSON.read_text(encoding="utf-8"))
+
+    return [
+        Document(
+            page_content=chunk["text"],
+            metadata=chunk["metadata"],
+        )
+        for chunk in data["chunks"]
+    ]
 
 def _cmd_index(recreate: bool) -> None:
-    """Ingesta + indexación en ChromaDB (necesario antes de --query o --ask)."""
-    chunks, _, _ = ejecutar_ingesta()
+    """Indexa los chunks guardados o ejecuta la ingesta si no existe el JSON."""
+    if CHUNKS_JSON.exists():
+        print(f"[main] Cargando chunks desde {CHUNKS_JSON} ...")
+        chunks = cargar_chunks_json()
+    else:
+        print("[main] No existe chunks.json. Ejecutando ingesta...")
+        chunks, _, _ = ejecutar_ingesta()
+
     print()
     n = index_chunks(chunks, recreate=recreate)
     print(f"[main] Indexados {n} chunks en ChromaDB.")
