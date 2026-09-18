@@ -8,7 +8,7 @@ from dataclasses import dataclass
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import TOP_K
 from src.index import get_client, get_or_create_collection
-from src.embed import embed_texts
+from src.embed import embeddear_textos
 
 
 @dataclass
@@ -29,7 +29,7 @@ def retrieve(query: str, k: int = TOP_K) -> list[RetrievedChunk]:
             "El índice está vacío. Ejecuta primero: python main.py --index"
         )
 
-    query_embedding = embed_texts([query])[0]
+    query_embedding = embeddear_textos([query])[0]
     results = collection.query(query_embeddings=[query_embedding], n_results=k)
 
     retrieved = []

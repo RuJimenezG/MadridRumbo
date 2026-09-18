@@ -22,10 +22,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import chromadb
 from langchain_core.documents import Document
 from config import CHROMA_DIR, COLLECTION_NAME, MAX_CHUNKS
-from src.embed import embed_texts
+from src.embed import embeddear_textos
 
 import json
-from config import EMBEDDING_PROVIDER, EMBEDDING_MODEL_GEMINI, EMBEDDING_MODEL_OPENAI, OUTPUT_DIR
+from config import EMBEDDINGS_JSON, EMBEDDING_MODEL
 
 #Reutiliza embeddings ya calculados en output/ (JSON) en vez de volver a llamar a la API cada vez que se indexa.
 #Solo se usa si el JSON existe, es del proveedor activo (EMBEDDING_PROVIDER)
@@ -33,19 +33,17 @@ from config import EMBEDDING_PROVIDER, EMBEDDING_MODEL_GEMINI, EMBEDDING_MODEL_O
 #(corpus cambiado, otro modelo, provider distinto), se ignora y se calcula
 #en vivo como hasta ahora. No cambia nada para quien no tenga ese JSON.
 
-def _cargar_embeddings_json(texts):
-    modelo = EMBEDDING_MODEL_GEMINI if EMBEDDING_PROVIDER == "gemini" else EMBEDDING_MODEL_OPENAI
-    ruta = OUTPUT_DIR / f"embeddings-{EMBEDDING_PROVIDER}.json"
+def _cargar_embeddings_json(texts) -> list[list[float]] | None:
+    modelo = EMBEDDING_MODEL
+    ruta = EMBEDDINGS_JSON
 
     if not ruta.exists():
         return None  # no hay JSON para este proveedor, seguir como antes
 
     with open(ruta, encoding="utf-8") as f:
         data = json.load(f)
-
-    if data.get("embedding_model") != modelo or len(data["items"]) != len(texts):
+    if (data.get("embedding_model") != modelo) or (len(data["items"]) != len(texts)):
         return None  # JSON no coincide con la config/corpus actual, no fiable
-
     return [item["vector"] for item in data["items"]]
 
 def get_client():
@@ -56,9 +54,19 @@ def get_or_create_collection(client, recreate: bool = False):
     if recreate:
         try:
             client.delete_collection(COLLECTION_NAME)
-        except Exception:
-            pass
-    return client.get_or_create_collection(COLLECTION_NAME)
+            print(f"[index] Colección '{COLLECTION_NAME}' eliminada.")
+        except Exception as e:
+            print(f"[index] No se pudo eliminar la colección: {e}")
+            raise
+    return client.get_or_create_collection(
+        name=COLLECTION_NAME,
+        configuration={
+            "hnsw": {
+                "batch_size": 500,
+                "sync_threshold": 20000,
+            }
+        },
+    )
 
 
 def _nombre_fuente(metadata: dict) -> str:
@@ -95,7 +103,9 @@ def index_chunks(chunks: list[Document], recreate: bool = False) -> int:
     # los embeddings como siempre. Ahorra llamadas a la API al reindexar.
     embeddings = _cargar_embeddings_json(texts)
     if embeddings is None:
-        embeddings = embed_texts(texts)
+        print("No hay fichero local de embeddings.json o devuelve None")
+        print(f"VARIABLE ---> {EMBEDDINGS_JSON}")
+        embeddings = embeddear_textos(texts)
 
     # Indexar por lotes para evitar problemas de memoria en corpus grandes.
     batch_size = 64
@@ -106,8 +116,29 @@ def index_chunks(chunks: list[Document], recreate: bool = False) -> int:
             metadatas=metadatas[i:i + batch_size],
             embeddings=embeddings[i:i + batch_size],
         )
-    return len(ids)
+        
+    print("\n[index] Upserts terminados.")
+    print(f"[index] Verificando colección...")
 
+    count = collection.count()
+
+    print(f"[index] Chroma confirma {count} registros.")
+
+    resultado = collection.query(
+        query_embeddings=[embeddings[0]],
+        n_results=3,
+    )
+
+    print("[index] Query de comprobación OK.")
+    print(f"[index] IDs recuperados: {resultado['ids']}")
+    print(f"IDs totales: {len(ids)}")
+    print(f"IDs únicos: {len(set(ids))}")
+    print(f"Chunks recibidos: {len(chunks)}")
+    print(f"IDs generados: {len(ids)}")
+    print(f"IDs únicos: {len(set(ids))}")
+    print(f"Embeddings: {len(embeddings)}")
+    return len(ids)
+    
 
 if __name__ == "__main__":
     import argparse

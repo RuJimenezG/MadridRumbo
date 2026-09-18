@@ -19,33 +19,17 @@ from config import (
     MAX_CHUNKS_EMBED,
     EMBED_RPM_LIMIT,
     EMBEDDING_PROVIDER,
-    EMBEDDING_MODEL_OPENAI,
     OPENAI_API_KEY,
-    EMBEDDING_MODEL_GEMINI,
     GEMINI_API_KEY,
 )
 
-# CORREGIDO (Persona 2): este import rompía TODO el fichero para cualquier
-# proveedor, no solo Gemini, porque falla al cargar el módulo (antes de llamar
-# a ninguna función). src/gemini_auth.py aún no existe en el repo. Lo hacemos
-# robusto con try/except para no bloquear al resto del equipo mientras se
-# termina ese fichero — @quien-lo-escribió: sustituye este bloque en cuanto
-# subas gemini_auth.py, o dime y lo integro.
-try:
-    from .gemini_auth import configurar_gemini_api_key
-except ImportError:
-    def configurar_gemini_api_key():
-        """Fallback temporal: no hace nada especial, genai.Client() ya puede
-        recibir la api_key directamente. Sustituir por la versión real de
-        gemini_auth.py en cuanto exista."""
-        pass
+from .model_auth import configurar_gemini_api_key, configurar_openai_api_key
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # =====================================================================
-# Funciones de Gemini (pipeline chunks.json -> embeddings.json)
-# — código del compañero, sin tocar —
+# Dos proveedores soportados: "openai" y "gemini".
 # =====================================================================
 
 def _extraer_vector(embedding_obj) -> list[float]:
@@ -56,8 +40,8 @@ def _extraer_vector(embedding_obj) -> list[float]:
     return list(embedding_obj)
 
 
-# Carga desde disco los chunks generados previamente por el pipeline de ingesta.
 def cargar_chunks_json() -> list[dict]:
+    """Carga desde disco los chunks generados previamente por el pipeline de ingesta."""
     # Antes de intentar leer el archivo, comprobamos que exista.
     if not CHUNKS_JSON.exists():
         raise FileNotFoundError(
@@ -70,43 +54,27 @@ def cargar_chunks_json() -> list[dict]:
     return data.get("chunks", [])
 
 
-def embeddear_textos(client: genai.Client, textos: list[str]) -> list[list[float]]:
+def embeddear_textos(textos: list[str]) -> list[list[float]]:
     """Envía textos a Gemini en lotes y devuelve vectores en el mismo orden."""
     # Si no recibimos ningún texto, no es necesario llamar a Gemini.
     if not textos:
         return []
     # Aquí acumularemos todos los vectores generados. Cada elemento será una lista de float.
     vectores: list[list[float]] = []
-    # Recorremos los textos por lotes.
-    for inicio in range(0, len(textos), EMBED_BATCH_SIZE):
-        # Extraemos el lote correspondiente.
-        lote = textos[inicio: inicio + EMBED_BATCH_SIZE]
-        # Lista de contenidos preparada para enviarse a la API.
-        contents = [types.Content(parts=[types.Part(text=t)]) for t in lote]
-        # Solicitamos a Gemini los embeddings del lote.
-        result = client.models.embed_content(
-            model=EMBEDDING_MODEL,
-            contents=contents,
+    
+    if EMBEDDING_PROVIDER == "gemini":
+        return _embed_gemini(textos)
+    elif EMBEDDING_PROVIDER == "openai":
+            return _embed_openai(textos)
+    else:
+        raise ValueError(
+            f"EMBEDDING_PROVIDER={EMBEDDING_PROVIDER!r} no soportado. "
+            f"Usa 'openai' o 'gemini' en tu .env."
         )
-        # result.embeddings contiene un embedding por cada texto enviado.
-        # _extraer_vector() convierte cada embedding devuelto por el SDK en una lista normal de float.
-        lote_vectores = [_extraer_vector(emb) for emb in result.embeddings]
-        # Añadimos los vectores de este lote a la lista global, conservando el mismo orden que tenían los textos originales.
-        vectores.extend(lote_vectores)
-        # Se configura un tiempo de espera para no superar el límite de RPM del tier gratuito de Gemini
-        if inicio + EMBED_BATCH_SIZE < len(textos):
-            espera = 60 * len(lote) / EMBED_RPM_LIMIT
-            time.sleep(espera)
-    # Devolvemos todos los vectores generados.
-    return vectores
 
 
 def ejecutar_embeddings() -> tuple[list[dict], Path]:
-    """chunks.json → vectores → embeddings.json."""
-    # Configuramos primero la API key de Gemini.
-    configurar_gemini_api_key()
-    # Creamos el cliente que realizará las peticiones a la API.
-    client = genai.Client()
+    """chunks.json → vectores → embeddings.json."""   
     # Cargamos los chunks generados previamente durante la fase de preparación del corpus.
     chunks = cargar_chunks_json()
     # Guardamos el número total de chunks disponibles antes de aplicar cualquier límite.
@@ -119,7 +87,7 @@ def ejecutar_embeddings() -> tuple[list[dict], Path]:
     # Guardamos el instante justo antes de empezar la generación para poder medir cuánto tarda la operación completa.
     inicio = time.perf_counter()
     # Enviamos los textos a Gemini y obtenemos sus vectores.
-    vectores = embeddear_textos(client, textos)
+    vectores = embeddear_textos(textos)
     # Calculamos el tiempo transcurrido. perf_counter() devuelve segundos, por eso multiplicamos por 1000 para expresarlo en milisegundos.
     latencia_ms = (time.perf_counter() - inicio) * 1000
     # Mostramos en consola:
@@ -186,20 +154,12 @@ def ejecutar_embeddings() -> tuple[list[dict], Path]:
     return items, EMBEDDINGS_JSON
 
 
-# =====================================================================
-# Mi parte (Persona 2): embed_texts() — interfaz usada por index.py/retrieve.py
-# Arquitectura ChromaDB, independiente del pipeline chunks.json de arriba.
-# Solo dos proveedores soportados: "openai" y "gemini".
-# =====================================================================
-
-def _embed_gemini_directo(texts: list[str]) -> list[list[float]]:
+def _embed_gemini(texts: list[str]) -> list[list[float]]:
     """
-    Gemini para embed_texts() (arquitectura ChromaDB), en lotes, respetando
-    EMBED_RPM_LIMIT. Usa GEMINI_API_KEY/EMBEDDING_MODEL_GEMINI directamente,
-    sin depender de gemini_auth.py, para no acoplarme al pipeline de arriba.
+    Gemini para embedear_textos() (arquitectura ChromaDB), en lotes, respetando
+    EMBED_RPM_LIMIT.
     """
-    if not GEMINI_API_KEY:
-        raise RuntimeError("Falta GEMINI_API_KEY en el .env")
+    configurar_gemini_api_key()
 
     client = genai.Client(api_key=GEMINI_API_KEY)
     vectores: list[list[float]] = []
@@ -210,7 +170,7 @@ def _embed_gemini_directo(texts: list[str]) -> list[list[float]]:
 
         for intento in range(3):
             try:
-                result = client.models.embed_content(model=EMBEDDING_MODEL_GEMINI, contents=contents)
+                result = client.models.embed_content(model=EMBEDDING_MODEL, contents=contents)
                 break
             except APIError as e:
                 if getattr(e, "code", None) == 429:
@@ -231,32 +191,19 @@ def _embed_gemini_directo(texts: list[str]) -> list[list[float]]:
 
 
 def _embed_openai(texts: list[str]) -> list[list[float]]:
-    if not OPENAI_API_KEY:
-        raise RuntimeError("Falta OPENAI_API_KEY en el .env")
+    configurar_openai_api_key()
     import openai
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
-    resp = client.embeddings.create(model=EMBEDDING_MODEL_OPENAI, input=texts)
-    return [d.embedding for d in resp.data]
-
-
-def embed_texts(texts: list[str], fit_tfidf: bool = False) -> list[list[float]]:
-    """Devuelve una lista de vectores de embedding, uno por texto de entrada.
-
-    Proveedores soportados: "openai" y "gemini" (EMBEDDING_PROVIDER en .env).
-    `fit_tfidf` se mantiene en la firma por compatibilidad con index.py, pero
-    no se usa (no hay proveedor tfidf en esta versión).
-    """
-    if EMBEDDING_PROVIDER == "gemini":
-        return _embed_gemini_directo(texts)
-    elif EMBEDDING_PROVIDER == "openai":
-        return _embed_openai(texts)
-    else:
-        raise ValueError(
-            f"EMBEDDING_PROVIDER={EMBEDDING_PROVIDER!r} no soportado. "
-            f"Usa 'openai' o 'gemini' en tu .env."
+    vectores: list[list[float]] = []
+    for inicio in range(0, len(texts), EMBED_BATCH_SIZE):
+        lote = texts[inicio: inicio + EMBED_BATCH_SIZE]
+        resp = client.embeddings.create(
+            model=EMBEDDING_MODEL,
+            input=lote
         )
-
+        vectores.extend(_extraer_vector(d.embedding) for d in resp.data)
+    return vectores
 
 if __name__ == "__main__":
-    vecs = embed_texts(["¿Cuánto cuesta el Abono Joven?", "Zonas tarifarias de Madrid"])
+    vecs = embeddear_textos(["¿Cuánto cuesta el Abono Joven?", "Zonas tarifarias de Madrid"])
     print(f"Generados {len(vecs)} vectores de dimensión {len(vecs[0])}")
