@@ -10,6 +10,7 @@ from pathlib import Path
 # SKU de Google Gemini
 from google import genai
 from google.genai import types
+from google.genai.errors import APIError
 from config import (
     CHUNKS_JSON,
     EMBED_BATCH_SIZE,
@@ -206,7 +207,22 @@ def _embed_gemini_directo(texts: list[str]) -> list[list[float]]:
     for inicio in range(0, len(texts), EMBED_BATCH_SIZE):
         lote = texts[inicio: inicio + EMBED_BATCH_SIZE]
         contents = [types.Content(parts=[types.Part(text=t)]) for t in lote]
-        result = client.models.embed_content(model=EMBEDDING_MODEL_GEMINI, contents=contents)
+
+        for intento in range(3):
+            try:
+                result = client.models.embed_content(model=EMBEDDING_MODEL_GEMINI, contents=contents)
+                break
+            except APIError as e:
+                if getattr(e, "code", None) == 429:
+                    if "PerDay" in str(e):
+                        print("   [embed] límite DIARIO alcanzado, parando (reintentar no sirve).")
+                        raise
+                    if intento < 2:
+                        print(f"   [embed] límite por minuto, esperando 60s (lote {inicio}-{inicio + len(lote)})...")
+                        time.sleep(60)
+                        continue
+                raise
+
         vectores.extend(_extraer_vector(emb) for emb in result.embeddings)
         if inicio + EMBED_BATCH_SIZE < len(texts):
             time.sleep(60 * len(lote) / EMBED_RPM_LIMIT)

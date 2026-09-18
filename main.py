@@ -74,12 +74,11 @@ def _cmd_query(pregunta: str, k: int) -> None:
 
 def _cmd_ask(pregunta: str, k: int) -> None:
     """RAG completo: retrieval (ChromaDB) + generación (Gemini), con abstención si no hay evidencia."""
-    from src.generate import generate
-    chunks = retrieve(pregunta, k=k)
-    respuesta = generate(pregunta, chunks)
+    from src.responder import responder
+    resultado = responder(pregunta, k=k)
     print(f"\nPREGUNTA: {pregunta}\n")
-    print(f"RESPUESTA:\n{respuesta}\n")
-    print("FUENTES:", sorted({c.source for c in chunks}))
+    print(f"RESPUESTA:\n{resultado['respuesta']}\n")
+    print("FUENTES:", resultado["fuentes"])
 
 
 def main() -> None:

@@ -170,5 +170,65 @@ python eval_retrieval.py --k 1 3
 
 ## Estado
 
-✅ Completo: embeddings, ChromaDB, retrieval, `main.py` conectando todo el ciclo `--prepare → --index → --ask` con caché de ingesta, y el bug del caché de embeddings corregido.
+✅ Completo: embeddings, ChromaDB, retrieval, y `main.py` conectando todo el ciclo `--prepare → --index → --ask`. Probado con la ingesta real (22.491 chunks) usando embeddings simulados (sin gastar cuota de API); pendiente de que el equipo lo valide con `GEMINI_API_KEY`/`OPENAI_API_KEY` reales antes de la entrega final.
 
+# Parte 3 y 4: Generación, evaluación, API interna y Streamlit
+
+> **Persona 3 — MadridRumbo (Project Break RAG Engineering)**
+> Pipeline: `Retrieval (ChromaDB) → Generación (Gemini) → responder()/rag_ask() → Evaluación → Streamlit`
+
+## Ficheros de los que soy responsable
+
+| Fichero | Descripción |
+|---|---|
+| `src/generate.py` | Generación con Gemini a partir del contexto recuperado. Prompt con abstención explícita si el contexto no contiene la respuesta. |
+| `src/responder.py` | `responder(pregunta, k) -> dict` (API interna) y `rag_ask(consulta) -> str`. Une `retrieve()` + `generate()`, mide tiempo y hace el logging básico. |
+| `eval_generacion.py` + `queries/eval_preguntas.json` | Evaluación de generación (15 preguntas, incluye casos fuera de corpus) con reintentos y guardado incremental de resultados. |
+| `main.py` (`_cmd_ask`) | Corregido para que `--ask` pase por `responder()` en vez de llamar a `retrieve`/`generate` por separado. |
+| `app.py` | Interfaz Streamlit: chat, contexto/fuentes recuperadas visibles y tabla de métricas. |
+| `assets/icono.png` | Identidad visual de la app (diseño propio). |
+
+## Cómo funciona mi parte del pipeline
+
+```bash
+python main.py --ask "¿Qué es un abono transporte?"      # RAG completo con logging
+python eval_generacion.py                                  # evaluación de generación
+python -m streamlit run app.py                              # interfaz
+```
+
+`responder()` centraliza retrieval + generación + logging, para que tanto el CLI como Streamlit usen exactamente el mismo camino y queden registrados igual en `rag.log` (pregunta, k, nº chunks, tiempo, modelo).
+
+## Los bugs reales que encontré y corregí
+
+**Evaluación de generación:**
+1. `429 RESOURCE_EXHAUSTED` tratado solo como límite por minuto → resultó haber también un límite **diario** de generación (20/día) que ninguna espera soluciona; documentado y manejado por separado.
+2. `503 UNAVAILABLE` (servidor saturado) no se capturaba, solo `ClientError` → ampliado a `APIError` con `code in (429, 503)`.
+3. `eval_generacion.py` perdía todo el progreso si fallaba a mitad de las 15 preguntas → reescrito con guardado incremental tras cada pregunta.
+4. Una pregunta válida sobre tarifas se respondía con abstención → diagnostiqué que las tablas de los PDFs pierden su estructura al extraerse como texto plano; no es un bug de mi código, se documenta como limitación conocida del corpus.
+5. `_cmd_ask()` en `main.py` no pasaba por `responder()`, así que el logging que pide el enunciado (pregunta/k/chunks/tiempo/modelo) nunca se generaba con `--ask` → corregido.
+
+**Soporte al equipo (bloqueaban mi evaluación):**
+6. `SyntaxError: 'return' outside function` en `src/embed.py` por una indentación perdida al aplicar un parche de reintentos, detectado al validar una rama de un compañero antes de fusionarla.
+7. Los reintentos de embeddings insistían aunque el error fuera de cuota **diaria** (no se recupera esperando) → añadida distinción entre error por minuto (reintentar) y por día (parar).
+
+## Evaluación
+
+- **Retrieval:** con `eval_retrieval.py` (K=1 y K=3) solo 3 de 11 preguntas in-corpus recuperan la fuente esperada. Diagnóstico con datos reales: el CSV de paradas es el 99,6% de los chunks del corpus y aparece en casi el 100% de las búsquedas, tapando a las FAQ/PDFs aunque no tengan relación con la pregunta.
+- **Generación:** evaluación de las 15 preguntas de `eval_preguntas.json` en curso; aún no completa por el límite diario de generación (20 peticiones/día del free tier), que corta el proceso a mitad.
+
+
+## Cómo probar mi parte
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env      # rellena GEMINI_API_KEY
+python main.py --index --recreate-index
+python main.py --ask "¿Qué es un abono transporte?"
+python eval_generacion.py
+python -m streamlit run app.py
+```
+
+## Estado
+
+✅ Completo: generación con abstención, API interna (`responder`/`rag_ask`), CLI `--ask` con logging, interfaz Streamlit (chat + contexto + métricas).
+⏳ Pendiente: terminar la evaluación de generación de las 15 preguntas (límite diario de cuota), decidir en equipo el filtro de `retrieve.py`, y el informe de decisiones final.
