@@ -85,7 +85,7 @@ La facturación es de 0,20 $ por millon de tokens.
 | `src/embed.py` (función `embed_texts()`) | Embeddings con proveedor intercambiable: `openai` o `gemini`, misma interfaz. |
 | `src/index.py` | Indexa los `Document` (de `chunk.py`) en ChromaDB persistente. `--recreate-index` para regenerar el índice. |
 | `src/retrieve.py` | Recupera los top-k chunks más relevantes y los formatea como contexto. |
-| `main.py` | CLI completa: `--prepare`, `--index`, `--query`, `--ask`. Conecta todo el pipeline. |
+| `main.py` | CLI completa: `--prepare`, `--index`, `--query`, `--ask`. Conecta todo el pipeline, y reutiliza `output/chunks.json` en `--index` si ya existe (evita repetir la ingesta completa cada vez). |
 | `config.py` (mi bloque) | `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL_OPENAI`, `EMBEDDING_MODEL_GEMINI`, `TOP_K`, `MAX_CHUNKS`, `COLLECTION_NAME`. |
 | `eval_retrieval.py` + `queries/eval_preguntas.json` | Evaluación de retrieval comparando distintos valores de K. |
 
@@ -96,6 +96,7 @@ La facturación es de 0,20 $ por millon de tokens.
 ```bash
 python main.py --prepare              # ingesta (load→clean→chunk) + embeddings.json (Gemini)
 python main.py --index                # (re)indexa el corpus en ChromaDB — offline
+                                       # reutiliza output/chunks.json si ya existe
 python main.py --index --recreate-index
 python main.py --query "¿Qué es la Tarjeta Azul?"     # solo retrieval, sin LLM
 python main.py --ask "¿Qué es la Tarjeta Azul?"        # RAG completo (ChromaDB + Gemini)
@@ -116,7 +117,7 @@ Controlado por `EMBEDDING_PROVIDER` en `.env`:
 - **`openai`**: `text-embedding-3-small`. Requiere `OPENAI_API_KEY`.
 - **`gemini`**: `gemini-embedding-2`. Requiere `GEMINI_API_KEY`. En lotes de `EMBED_BATCH_SIZE`, con espera automática para no superar `EMBED_RPM_LIMIT`.
 
-## Los 7 bugs reales que encontré y corregí (en dos rondas)
+## Los 9 bugs reales que encontré y corregí (en tres rondas)
 
 **Ronda 1 — embeddings/config:**
 1. `config.py` no importaba `os` ni llamaba a `load_dotenv()` → `NameError` en cualquier `os.getenv(...)`.
@@ -127,7 +128,11 @@ Controlado por `EMBEDDING_PROVIDER` en `.env`:
 4. `src/index.py` importaba la clase `Chunk`, que ya no existe (el `chunk.py` real usa `Document` de LangChain) → rompía en cascada `retrieve.py` y `generate.py`. Reescrito para trabajar con `Document`.
 5. `config.py` no tenía `COLLECTION_NAME`, que `index.py` necesita.
 6. `MAX_CHUNKS` insuficiente dos veces: primero 500→12.000, y de nuevo 12.000→25.000 al confirmar que el pipeline real genera **22.491 chunks** (22.404 solo del CSV, una fila = un chunk).
-7. `generate.py` creaba el cliente de Gemini al importar el módulo → bloqueaba `--prepare`/`--index`/`--query` sin `GEMINI_API_KEY`, aunque no se fuera a usar `--ask`. Solucionado con import en `main.py`.
+7. `generate.py` creaba el cliente de Gemini al importar el módulo → bloqueaba `--prepare`/`--index`/`--query` sin `GEMINI_API_KEY`, aunque no se fuera a usar `--ask`. Solucionado con import perezoso en `main.py`.
+
+**Ronda 3 — caché de embeddings e ingesta:**
+8. `_cargar_embeddings_json()` (añadida por un compañero para reutilizar embeddings ya calculados) buscaba un fichero (`embeddings-{provider}.json`) que nunca se genera con ese nombre, y además solo comparaba la **cantidad** de chunks, no el **contenido** — riesgo de indexar pares (texto, vector) equivocados si el recuento coincidía por casualidad. Corregido: nombre real del fichero + validación texto a texto antes de reutilizar el caché.
+9. `_cmd_index()` en `main.py` repetía toda la ingesta (incluida la lectura del CSV de 22.404 filas y los 2 PDFs) cada vez que se indexaba. Ahora reutiliza `output/chunks.json` si ya existe, reconstruyendo los `Document` con LangChain, y solo ejecuta la ingesta completa si el fichero no existe.
 
 ## Evaluación de retrieval
 
@@ -135,16 +140,23 @@ Controlado por `EMBEDDING_PROVIDER` en `.env`:
 python eval_retrieval.py --k 1 3
 ```
 
-| K | Aciertos in-corpus (de 11) |
-|---|---|
-| 1 | 4 |
-| 3 | 5 (con TF-IDF, solo como prueba de metodología) |
+| K | Aciertos in-corpus (de 11) | Proveedor |
+|---|---|---|
+| 1 | 3 | Real (`queries/eval_retrieval_resultados.json`) |
+| 3 | 3 | Real (`queries/eval_retrieval_resultados.json`) |
 
-**Pendiente:** repetir esta evaluación con `EMBEDDING_PROVIDER=openai` o `gemini` (el código final ya no incluye TF-IDF) para tener el número definitivo antes de la entrega.
+**Confirmado con datos reales (no solo TF-IDF):** subir K de 1 a 3 **no mejora nada** — el resultado es idéntico. Diagnóstico: 7 de las 11 preguntas in-corpus recuperan **solo filas del CSV de paradas**, incluso preguntas de FAQ puras. El problema no es la calidad del embedding, es el volumen: el CSV es ~9.700-22.400 de los ~9.800-22.500 chunks totales del corpus (según la versión de `load.py`), y domina el espacio vectorial frente a las ~90 chunks de FAQ/PDFs que sí contienen las respuestas.
 
-## Recomendación pendiente para el equipo
+## Recomendación para el equipo sobre el CSV (con propuesta ya lista)
 
-Indexar las 22.404 paradas del CSV fila a fila es mucho volumen para un asistente de tarifas/abonos, y sube el coste/tiempo de generar embeddings. Vale la pena discutir si conviene agregar el CSV (por zona o línea) antes de indexar, en vez de una fila = un chunk.
+Indexar las paradas del CSV en tanto detalle es lo que está ahogando el retrieval. Tengo una propuesta probada que agrupa por zona tarifaria + tipo de transporte, guardando solo los nombres de las paradas (no el detalle completo de cada una):
+
+- Filas originales: 22.404
+- Chunks con 1 fila = 1 chunk: 22.404
+- Chunks agrupando por zona con todo el detalle (aproximación de un compañero, en progreso): 9.927
+- **Chunks agrupando por zona con solo nombres (mi propuesta, probada): 37**
+
+Pendiente de decidir en equipo: si se adopta la versión compacta (37 chunks) para el RAG semántico, y se deja el CSV completo aparte como fuente de una futura *tool* de búsqueda exacta de paradas (Project Break de Agentes), en vez de intentar resolverlo todo con retrieval semántico.
 
 ## Cómo probar mi parte
 
