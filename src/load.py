@@ -147,26 +147,25 @@ def cargar_paradas_csv_agrupadas(ruta: Path) -> list[Document]:
 
         for inicio in range(0, len(paradas), TAM_BLOQUE):
             bloque = paradas[inicio:inicio + TAM_BLOQUE]
-        contenido = (
-            f"Tipo de transporte: {tipo_transporte}\n"
-            f"Zona tarifaria: {zona}\n\n"
-            + "\n".join(bloque)
-        )
-        
-        documentos.append(
-            Document(
-                page_content=contenido,
-                metadata={
-                    "source": str(ruta),
-                    "tipo": "paradas_crtm_bloque",
-                    "tipo_transporte": tipo_transporte,
-                    "zona": zona,
-                    "num_paradas": len(bloque),
-                    "bloque": (inicio // TAM_BLOQUE) + 1,
-                },
+            contenido = (
+                f"Tipo de transporte: {tipo_transporte}\n"
+                f"Zona tarifaria: {zona}\n\n"
+                + "\n".join(bloque)
             )
-        )
-
+            documentos.append(
+                Document(
+                    page_content=contenido,
+                    metadata={
+                        "source": str(ruta),
+                        "tipo": "paradas_crtm_bloque",
+                        "tipo_transporte": tipo_transporte,
+                        "zona": zona,
+                        "num_paradas": len(bloque),
+                        "bloque": (inicio // TAM_BLOQUE) + 1,
+                    },
+                )
+            )
+    
     return documentos
 
 def cargar_archivo(ruta: Path) -> list[Document]:

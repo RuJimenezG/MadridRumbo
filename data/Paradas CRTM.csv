@@ -1,4 +1,4 @@
-stop_id;stop_name;stop_desc;zone_id;Autobús Urbano
+stop_id;stop_name;stop_desc;zone_id;type
 par_4_1;PLAZA DE CASTILLA;Paseo de la Castellana 189;A;Metro
 par_4_10;TRIBUNAL;Calle de Fuencarral 81;A;Metro
 par_4_11;GRAN VIA;Calle   Gran Vía 23;A;Metro
