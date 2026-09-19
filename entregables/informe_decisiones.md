@@ -202,7 +202,75 @@ En una evolución basada en agentes, las consultas exactas sobre paradas podría
 
 ---
 
-### 6.2. Pérdida de estructura en tablas PDF
+### 6.2. Limitación del retrieval en consultas composicionales
+
+**Problema**
+
+Durante las pruebas se detectó una limitación en las consultas que requieren combinar información procedente de distintas partes del corpus.
+
+Un ejemplo representativo es la consulta:
+
+> ¿Cuál es el precio del billete para ir desde Hospital de Móstoles hasta Príncipe Pío?
+
+Para responder correctamente no basta con recuperar un único fragmento. El sistema debe localizar, al menos:
+
+1. La estación de origen y su información tarifaria.
+2. La estación de destino y su información tarifaria.
+3. Las reglas o precios aplicables al trayecto correspondiente.
+
+La implementación actual realiza una única búsqueda vectorial utilizando el embedding de la pregunta completa y recupera los `K` chunks semánticamente más próximos.
+
+Al ejecutar la consulta anterior con valores de `K` comprendidos entre 4 y 12, los resultados recuperados correspondían únicamente a información sobre paradas y estaciones. No se recuperaron chunks procedentes de los documentos de tarifas.
+
+Aumentar el valor de `K` no solucionó el problema, ya que los nuevos resultados continuaban perteneciendo al mismo tipo de información.
+
+**Experimento de diagnóstico**
+
+Para comprobar si la información tarifaria estaba correctamente indexada se realizó una consulta más específica:
+
+```bash
+python main.py --query "precio billete sencillo MetroSur Metro Zona A Combinado Metro 2026" --k 5
+```
+En este caso, los cinco primeros resultados recuperados procedieron de los documentos:
+
+- bocm-20251231-precios_transporte.pdf
+- bocm-20251231-tarifas_transporte.pdf
+
+Entre los fragmentos recuperados aparecieron explícitamente conceptos como:
+
+- BILLETES SENCILLOS: PRECIOS VIGENTES 2026
+- Metro Zona A y ML1
+- MetroEste, MetroNorte y MetroSur
+- Combinado Metro
+
+Este experimento permite concluir que la información tarifaria sí está presente e indexada correctamente, pero la consulta original no consigue recuperarla debido a la forma en la que se realiza actualmente el retrieval.
+
+Los nombres concretos de las estaciones tienen un peso semántico elevado en la consulta y hacen que los chunks de paradas dominen los primeros resultados, mientras que los documentos de tarifas quedan fuera del Top-K.
+
+**Conclusión**
+
+Este caso muestra una limitación del retrieval vectorial basado en una única consulta para preguntas composicionales o multi-hop. El sistema recupera correctamente información cuando la consulta está centrada en un único concepto, pero presenta dificultades cuando la respuesta requiere combinar diferentes tipos de evidencia.
+
+Aumentar únicamente el valor de K no constituye una solución adecuada, ya que puede incrementar el ruido del contexto sin garantizar que se recuperen las distintas clases de información necesarias.
+
+**Siguiente paso**
+
+Como posible mejora se plantea implementar una estrategia de query decomposition o multi-query retrieval.
+
+Una consulta de origen-destino podría descomponerse conceptualmente en varias búsquedas independientes:
+
+1. Recuperar información sobre la parada de origen.
+2. Recuperar información sobre la parada de destino.
+3. Recuperar las reglas tarifarias relevantes.
+4. Combinar los fragmentos recuperados antes de enviarlos al modelo generativo.
+
+De esta forma, el LLM recibiría conjuntamente la evidencia necesaria para realizar la deducción final.
+
+También se mantiene como línea de mejora el preprocesamiento de las tablas tarifarias de los PDF a un formato estructurado, como Markdown, CSV o JSON, ya que la extracción actual a texto plano pierde parcialmente la relación entre encabezados, categorías y precios.
+
+---
+
+### 6.3. Pérdida de estructura en tablas PDF
 
 **Problema**
 
@@ -218,7 +286,7 @@ Otra posibilidad sería mantener el PDF como fuente original pero generar previa
 
 ---
 
-### 6.3. Dependencia de cuotas y disponibilidad de APIs externas
+### 6.4. Dependencia de cuotas y disponibilidad de APIs externas
 
 **Problema**
 
