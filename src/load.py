@@ -5,8 +5,7 @@ Convierte los archivos del corpus en objetos Document de LangChain.
 Formatos soportados:
 - .txt y .md → se cargan como documentos de texto.
 - .pdf → se carga mediante PyPDFLoader.
-- Paradas CRTM.csv → se transforma cada fila en un Document independiente.
-
+- Paradas CRTM.csv → se agrupa por tipo de transporte y zona tarifaria, generando Documents con bloques de hasta 6 paradas.
 Se omiten:
 - Archivos .json.
 - README.md.
@@ -69,134 +68,42 @@ def fila_parada_a_texto(fila) -> str | None:
 
     # stop_name contiene el nombre legible de la parada.
     nombre = valor_celda(fila, "stop_name")
+    
+    # Descripción de la parada (suele contener la dirección)
+    descripcion = valor_celda(fila, "stop_desc")
 
     # Consideramos que una fila sin ID o sin nombre no representa una parada suficientemente identificable para el RAG.
     if stop_id is None or nombre is None:
         return None
 
-    # Empezamos el texto con los dos datos fundamentales: nombre de la parada e identificador.
-    lineas = [
-        f"Parada: {nombre}",
-        f"ID de parada: {stop_id}",
-    ]
-
-    # Relacionamos el nombre que queremos mostrar en el texto con la columna correspondiente del CSV.
-    #
-    # Estos campos son opcionales porque algunas filas del fichero
-    # tienen ciertos valores vacíos.
-    campos_opcionales = [
-        ("Código de parada", "stop_code"),
-        ("Descripción / dirección", "stop_desc"),
-        ("Tipo de transporte", "TIPO"),
-        ("Zona tarifaria", "zone_id"),
-        ("Latitud", "stop_lat"),
-        ("Longitud", "stop_lon"),
-        ("Tipo de ubicación GTFS", "location_type"),
-        ("Estación padre", "parent_station"),
-        ("Zona horaria", "stop_timezone"),
-        ("Accesibilidad en silla de ruedas (GTFS)", "wheelchair_boarding"),
-    ]
-
-    # Añadimos únicamente los campos que realmente contienen información. De esta forma evitamos generar textos como:
-    #   Estación padre: ?
-    #   Zona horaria: ?
-    # cuando esos datos no existen en la fila.
-    for etiqueta, columna in campos_opcionales:
-        valor = valor_celda(fila, columna)
-
-        if valor is not None:
-            lineas.append(f"{etiqueta}: {valor}")
-
-    # Convertimos la lista de líneas en un único string. Ejemplo aproximado:
-    # Parada: PLAZA DE CASTILLA
-    # ID de parada: par_4_1
-    # Código de parada: 1
-    # Descripción / dirección: Paseo de la Castellana 189
-    # Tipo de transporte: metro
-    # Zona tarifaria: A
-    # ...
-    return "\n".join(lineas)
+    # Se construye el texto a devolver
+    texto = f"- ID: {stop_id} | Nombre: {nombre}"
+    if descripcion is not None:
+        texto += f" | Descripción: {descripcion}"
+    
+    return texto
 
 
-def cargar_paradas_csv(ruta: Path) -> list[Document]:
-    """Carga Paradas CRTM.csv y crea un Document por cada fila válida."""
-    # Leemos el CSV con pandas.
-    # sep=";"
-    # El fichero utiliza punto y coma como separador de columnas.
-    # encoding="latin-1"
-    #   El CSV adjunto no está codificado como UTF-8. latin-1 permite interpretar correctamente los caracteres españoles.
-    # dtype=str
-    #   Fuerza a pandas a conservar todos los valores como texto.
-    #   Esto es especialmente útil para identificadores, códigos y coordenadas, ya que no queremos que pandas los convierta automáticamente a int o float.
+def cargar_paradas_csv_agrupadas(ruta: Path) -> list[Document]:
+    """Carga Paradas CRTM.csv agrupando por tipo y zona en bloques de hasta 6 paradas."""
+    
     df = pd.read_csv(
         ruta,
         sep=";",
-        encoding="latin-1",
+        encoding="utf-8",
         dtype=str,
     )
 
-    # Durante desarrollo puede ser útil procesar solamente las primeras
-    # filas del CSV para acelerar las pruebas. Si MAX_FILAS_CSV es None, se procesará el fichero completo.
-    if MAX_FILAS_CSV is not None:
-        df = df.head(MAX_FILAS_CSV)
-
-    # Aquí almacenaremos todos los Document generados.
-    documentos: list[Document] = []
-
-    # iterrows() permite recorrer el DataFrame fila por fila.
-    # En este caso tiene sentido porque queremos que cada fila del CSV se convierta en un Document independiente de LangChain.
-    for _, fila in df.iterrows():
-
-        # Convertimos la fila estructurada del CSV en texto legible.
-        texto = fila_parada_a_texto(fila)
-
-        # Si la fila no tenía los datos mínimos necesarios, fila_parada_a_texto() devuelve None y la descartamos.
-        if texto is None:
-            continue
-
-        # Los metadatos contienen información estructurada asociada al Document.
-        # A diferencia de page_content, estos datos no forman parte directamente del texto que se utilizará para los embeddings, pero posteriormente pueden ser útiles para:
-        # - identificar el origen del documento;
-        # - saber qué parada produjo un resultado;
-        # - filtrar por zona;
-        # - filtrar por tipo de transporte;
-        # - mostrar información adicional en las respuestas del RAG.
-        metadata: dict = {
-            "source": str(ruta),
-            "tipo": "parada_crtm",
-            "stop_id": valor_celda(fila, "stop_id"),
-            "stop_code": valor_celda(fila, "stop_code"),
-            "stop_name": valor_celda(fila, "stop_name"),
-            "tipo_transporte": valor_celda(fila, "TIPO"),
-            "zona": valor_celda(fila, "zone_id"),
-            "parent_station": valor_celda(fila, "parent_station"),
-        }
-
-        # Creamos finalmente el objeto Document de LangChain.
-        # page_content:
-        #   texto que posteriormente podrá procesarse y convertirse en embeddings.
-        # metadata:
-        #   información estructurada relacionada con ese texto.
-        documentos.append(
-            Document(
-                page_content=texto,
-                metadata=metadata,
-            )
-        )
-
-    # Devolvemos todos los Document creados a partir del CSV.
-    return documentos
-
-def cargar_paradas_csv_por_zona(ruta: Path) -> list[Document]:
-    """Carga Paradas CRTM.csv agrupando todas las paradas por zona."""
-
-    df = pd.read_csv(
-        ruta,
-        sep=";",
-        encoding="latin-1",
-        dtype=str,
-    )
-
+    df = df[
+    [
+        "stop_id",
+        "stop_name",
+        "stop_desc",
+        "zone_id",
+        "type",
+    ]
+    ].copy()
+    
     if MAX_FILAS_CSV is not None:
         df = df.head(MAX_FILAS_CSV)
 
@@ -211,8 +118,19 @@ def cargar_paradas_csv_por_zona(ruta: Path) -> list[Document]:
         .str.replace(r"^Zona\s+", "", regex=True)
         .replace({"": "SIN_ZONA", "nan": "SIN_ZONA"})
     )
+    # Normalizamos el tipo de transporte
+    df["tipo_normalizado"] = (
+        df["type"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .replace({"": "SIN_TIPO", "nan": "SIN_TIPO"})
+    )
 
-    for zona, grupo in df.groupby("zona_normalizada", sort=True):
+    for (tipo_transporte, zona), grupo in df.groupby(
+    ["tipo_normalizado", "zona_normalizada"],
+    sort=True,
+    ):
 
         paradas = []
 
@@ -225,23 +143,29 @@ def cargar_paradas_csv_por_zona(ruta: Path) -> list[Document]:
         if not paradas:
             continue
 
-        contenido = (
-            f"Zona tarifaria: {zona}\n\n"
-            + "\n\n---\n\n".join(paradas)
-        )
+        TAM_BLOQUE = 6
 
-        documentos.append(
-            Document(
-                page_content=contenido,
-                metadata={
-                    "source": str(ruta),
-                    "tipo": "paradas_crtm_zona",
-                    "zona": zona,
-                    "num_paradas": len(paradas),
-                },
+        for inicio in range(0, len(paradas), TAM_BLOQUE):
+            bloque = paradas[inicio:inicio + TAM_BLOQUE]
+            contenido = (
+                f"Tipo de transporte: {tipo_transporte}\n"
+                f"Zona tarifaria: {zona}\n\n"
+                + "\n".join(bloque)
             )
-        )
-
+            documentos.append(
+                Document(
+                    page_content=contenido,
+                    metadata={
+                        "source": str(ruta),
+                        "tipo": "paradas_crtm_bloque",
+                        "tipo_transporte": tipo_transporte,
+                        "zona": zona,
+                        "num_paradas": len(bloque),
+                        "bloque": (inicio // TAM_BLOQUE) + 1,
+                    },
+                )
+            )
+    
     return documentos
 
 def cargar_archivo(ruta: Path) -> list[Document]:
@@ -264,9 +188,9 @@ def cargar_archivo(ruta: Path) -> list[Document]:
         ).load()
 
     # El CSV de paradas necesita un tratamiento específico.
-    # No utilizamos un CSVLoader genérico porque queremos controlar exactamente cómo se transforma cada parada en texto y qué información se guarda en los metadatos.
+    # Las paradas se agrupan por tipo de transporte y zona tarifaria, y se generan Documents con bloques de hasta 6 paradas. De este modo reducimos el número de Documents y futuros embeddings sin perder ninguna parada del corpus.    
     if sufijo in EXTENSIONES_CSV and ruta.name == CSV_PARADAS:
-        return cargar_paradas_csv_por_zona(ruta)
+        return cargar_paradas_csv_agrupadas(ruta)
 
     # Si el archivo no pertenece a ninguno de los formatos soportados, devolvemos una lista vacía.
     return []
