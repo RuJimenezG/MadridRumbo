@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 from config import CHUNKS_JSON, EMBEDDING_MODEL
-from .gemini_auth import configurar_gemini_api_key
+from .model_auth import configurar_gemini_api_key
 
 
 def contar_tokens_chunks() -> int:
