@@ -2,19 +2,16 @@
 
 ## 1. Objetivo
 
-Este experimento evalúa el efecto de aumentar el número de chunks recuperados
-por el retriever de `K = 3` a `K = 4`.
+Este experimento evalúa el efecto de aumentar el número de chunks recuperados por el retriever de `K = 3` a `K = 4`.
 
-La comparación se realiza sobre la configuración de chunking seleccionada como
-definitiva para MadridRumbo:
+La comparación se realiza sobre la configuración de chunking seleccionada como definitiva para MadridRumbo:
 
 ```python
 CHUNK_SIZE = 400
 CHUNK_OVERLAP = 50
 ```
 
-Antes de iniciar el experimento se han regenerado los chunks, embeddings e
-índice ChromaDB con esta configuración.
+Antes de iniciar el experimento se han regenerado los chunks, embeddings e índice ChromaDB con esta configuración.
 
 Durante todo el experimento se mantendrán constantes:
 
@@ -35,37 +32,28 @@ La única variable experimental será el número de resultados recuperados:
 
 ## 2. Motivación
 
-En el experimento de chunking 400 / 50 se observó que la pregunta q10 no
-contenía toda la evidencia necesaria dentro del Top-3.
+En el experimento de chunking 400 / 50 se observó que la pregunta q10 no contenía toda la evidencia necesaria dentro del Top-3.
 
-Sin embargo, una prueba exploratoria mostró que el cuarto resultado sí
-contenía la evidencia necesaria.
+Sin embargo, una prueba exploratoria mostró que el cuarto resultado sí contenía la evidencia necesaria.
 
 Esto plantea una cuestión relevante para el diseño final del retrieval:
 
 > ¿Aumentar K de 3 a 4 mejora de forma útil la recuperación de evidencia o
 > simplemente introduce más contexto y ruido?
 
-El experimento no pretende únicamente comprobar si aparecen más fuentes
-correctas al aumentar K. Dado que un valor mayor de K recupera necesariamente
-más fragmentos, también se analizará la calidad del contexto adicional.
+El experimento no pretende únicamente comprobar si aparecen más fuentes correctas al aumentar K. Dado que un valor mayor de K recupera necesariamente más fragmentos, también se analizará la calidad del contexto adicional.
 
 ---
 
 ## 3. Hipótesis
 
-La hipótesis de partida es que `K = 4` puede mejorar la cobertura del retrieval
-en consultas donde la evidencia relevante queda inmediatamente fuera del
-Top-3.
+La hipótesis de partida es que `K = 4` puede mejorar la cobertura del retrieval en consultas donde la evidencia relevante queda inmediatamente fuera del Top-3.
 
-En particular, se espera que q10 pase de `Evidence hit = No` con K=3 a
-`Evidence hit = Sí` con K=4.
+En particular, se espera que q10 pase de `Evidence hit = No` con K=3 a `Evidence hit = Sí` con K=4.
 
-A cambio, el cuarto fragmento puede introducir información irrelevante o
-redundante en preguntas que ya estaban correctamente resueltas con K=3.
+A cambio, el cuarto fragmento puede introducir información irrelevante o redundante en preguntas que ya estaban correctamente resueltas con K=3.
 
-Por tanto, la decisión final no se basará únicamente en el número de aciertos,
-sino en el compromiso entre:
+Por tanto, la decisión final no se basará únicamente en el número de aciertos, sino en el compromiso entre:
 
 - cobertura de fuentes;
 - recuperación de evidencia;
@@ -97,23 +85,19 @@ No se regenerarán chunks, embeddings ni ChromaDB entre K=3 y K=4.
 
 ### 5.1. Source hit
 
-Se considera `Source hit` cuando la fuente esperada aparece entre los K
-resultados recuperados.
+Se considera `Source hit` cuando la fuente esperada aparece entre los K resultados recuperados.
 
-El script `eval_retrieval.py` calcula automáticamente esta métrica sobre todas
-las preguntas in-corpus de `eval_preguntas.json`.
+El script `eval_retrieval.py` calcula automáticamente esta métrica sobre todas las preguntas in-corpus de `eval_preguntas.json`.
 
 ### 5.2. Evidence hit
 
-Se considera `Evidence hit` cuando el contexto recuperado contiene la evidencia
-necesaria para responder correctamente según `criterio_evidencia`.
+Se considera `Evidence hit` cuando el contexto recuperado contiene la evidencia necesaria para responder correctamente según `criterio_evidencia`.
 
 Esta métrica se comprobará manualmente sobre siete preguntas representativas.
 
 ### 5.3. Posición de la evidencia
 
-Se anotará la mejor posición en la que aparece el fragmento que contiene la
-evidencia suficiente para responder.
+Se anotará la mejor posición en la que aparece el fragmento que contiene la evidencia suficiente para responder.
 
 Si ninguno de los K resultados contiene evidencia suficiente se indicará `-`.
 
@@ -141,12 +125,9 @@ Se observarán especialmente:
 
 ## 6. Evaluación automática de Source hit
 
-El evaluador automático se ejecutará sobre todas las preguntas de
-`eval_preguntas.json`.
+El evaluador automático se ejecutará sobre todas las preguntas de `eval_preguntas.json`.
 
-Las preguntas fuera de corpus no se contabilizan en esta evaluación de
-retrieval porque no tienen una fuente esperada. Su abstención se evaluará
-posteriormente en la capa de generación.
+Las preguntas fuera de corpus no se contabilizan en esta evaluación de retrieval porque no tienen una fuente esperada. Su abstención se evaluará posteriormente en la capa de generación.
 
 ### Resultados
 
@@ -160,22 +141,17 @@ posteriormente en la capa de generación.
 
 No se observaron mejoras de `Source hit` al aumentar K de 3 a 4.
 
-Con ambos valores, la fuente esperada fue recuperada en las 11 preguntas
-in-corpus.
+Con ambos valores, la fuente esperada fue recuperada en las 11 preguntas in-corpus.
 
-Por tanto, desde el punto de vista exclusivo de recuperación de fuente,
-K=4 no aporta una mejora frente a K=3.
+Por tanto, desde el punto de vista exclusivo de recuperación de fuente, K=4 no aporta una mejora frente a K=3.
 
-La comparación deberá centrarse ahora en si el cuarto fragmento permite
-recuperar evidencia que no estaba disponible en el Top-3 y en el posible
-ruido adicional introducido.
+La comparación deberá centrarse ahora en si el cuarto fragmento permite recuperar evidencia que no estaba disponible en el Top-3 y en el posible ruido adicional introducido.
 
 ---
 
 ## 7. Evaluación cualitativa de Evidence hit
 
-Se reutiliza el mismo subconjunto representativo empleado en los experimentos
-de chunking.
+Se reutiliza el mismo subconjunto representativo empleado en los experimentos de chunking.
 
 | ID | Fuente esperada | Criterio de evidencia |
 |---|---|---|
@@ -252,8 +228,7 @@ q10 constituye el caso más relevante de la comparación.
 
 **Pregunta**
 
-> ¿Qué incremento se aplica a las tarifas del transporte público en 2026
-> y qué excepciones hay?
+> ¿Qué incremento se aplica a las tarifas del transporte público en 2026 y qué excepciones hay?
 
 **Criterio de evidencia**
 
@@ -271,12 +246,9 @@ La evidencia recuperada debe incluir:
 
 **Posición de evidencia suficiente:** -
 
-Aunque la fuente esperada aparece dentro del Top-3, ninguno de los tres
-fragmentos contiene toda la información necesaria para cumplir el criterio
-de evidencia.
+Aunque la fuente esperada aparece dentro del Top-3, ninguno de los tres fragmentos contiene toda la información necesaria para cumplir el criterio de evidencia.
 
-Por tanto, recuperar la fuente correcta no es suficiente para responder
-correctamente a la consulta.
+Por tanto, recuperar la fuente correcta no es suficiente para responder correctamente a la consulta.
 
 ### K=4
 
@@ -286,8 +258,7 @@ correctamente a la consulta.
 
 **Posición de evidencia suficiente:** 4
 
-El cuarto fragmento contiene la información que faltaba para cumplir
-completamente el criterio de evidencia.
+El cuarto fragmento contiene la información que faltaba para cumplir completamente el criterio de evidencia.
 
 Por este motivo se clasifica el cuarto resultado como **Necesario**.
 
@@ -295,13 +266,9 @@ Por este motivo se clasifica el cuarto resultado como **Necesario**.
 
 Aumentar K de 3 a 4 corrige un fallo real del retrieval.
 
-La mejora no consiste en recuperar una fuente nueva, ya que la fuente correcta
-ya estaba presente con K=3, sino en ampliar el contexto hasta incluir el
-fragmento que contiene la evidencia completa.
+La mejora no consiste en recuperar una fuente nueva, ya que la fuente correcta ya estaba presente con K=3, sino en ampliar el contexto hasta incluir el fragmento que contiene la evidencia completa.
 
-Este resultado muestra nuevamente que `Source hit` y `Evidence hit` miden
-aspectos diferentes del sistema y que evaluar únicamente la presencia del
-documento esperado puede ocultar fallos relevantes.
+Este resultado muestra nuevamente que `Source hit` y `Evidence hit` miden aspectos diferentes del sistema y que evaluar únicamente la presencia del documento esperado puede ocultar fallos relevantes.
 
 ---
 
@@ -309,8 +276,7 @@ documento esperado puede ocultar fallos relevantes.
 
 Aumentar K de 3 a 4 introduce un fragmento adicional en todas las consultas.
 
-La evaluación cualitativa muestra que este fragmento adicional no resulta
-útil en la mayoría de las preguntas:
+La evaluación cualitativa muestra que este fragmento adicional no resulta útil en la mayoría de las preguntas:
 
 | Tipo de cuarto fragmento | Casos | Porcentaje |
 |---|---:|---:|
@@ -319,45 +285,31 @@ La evaluación cualitativa muestra que este fragmento adicional no resulta
 | Redundante | 2 | 28,6 % |
 | Irrelevante | 4 | 57,1 % |
 
-En seis de las siete preguntas el cuarto fragmento no es necesario para
-responder correctamente.
+En seis de las siete preguntas el cuarto fragmento no es necesario para responder correctamente.
 
-En q01 y q11 aporta información relacionada, pero redundante respecto a la
-ya recuperada.
+En q01 y q11 aporta información relacionada, pero redundante respecto a la ya recuperada.
 
-En q03, q05, q08 y q09 el cuarto fragmento no aporta información útil para
-responder a la consulta.
+En q03, q05, q08 y q09 el cuarto fragmento no aporta información útil para responder a la consulta.
 
-Sin embargo, en q10 el cuarto fragmento resulta imprescindible y permite
-pasar de `Evidence hit = No` a `Evidence hit = Sí`.
+Sin embargo, en q10 el cuarto fragmento resulta imprescindible y permite pasar de `Evidence hit = No` a `Evidence hit = Sí`.
 
-Por tanto, K=4 introduce una cantidad apreciable de información redundante o
-irrelevante, pero a cambio corrige un fallo real que no podía resolverse con
-K=3.
+Por tanto, K=4 introduce una cantidad apreciable de información redundante o irrelevante, pero a cambio corrige un fallo real que no podía resolverse con K=3.
 
 ---
 
 ## 11. Coste relativo
 
-El cambio de K=3 a K=4 no requiere regenerar chunks, embeddings ni el índice
-vectorial.
+El cambio de K=3 a K=4 no requiere regenerar chunks, embeddings ni el índice vectorial.
 
-El coste adicional se limita a recuperar un fragmento más por consulta y,
-posteriormente, incluirlo en el contexto enviado al modelo generador.
+El coste adicional se limita a recuperar un fragmento más por consulta y, posteriormente, incluirlo en el contexto enviado al modelo generador.
 
-Esto supone aproximadamente un 33 % más de fragmentos recuperados por
-consulta, aunque el incremento real de tokens dependerá del tamaño de cada
-chunk.
+Esto supone aproximadamente un 33 % más de fragmentos recuperados por consulta, aunque el incremento real de tokens dependerá del tamaño de cada chunk.
 
-En la evaluación realizada, seis de los siete cuartos fragmentos no eran
-necesarios para cumplir el criterio de evidencia.
+En la evaluación realizada, seis de los siete cuartos fragmentos no eran necesarios para cumplir el criterio de evidencia.
 
-Por tanto, K=4 presenta un coste adicional de contexto y puede introducir
-más ruido. Sin embargo, este incremento permite resolver correctamente q10,
-que falla con K=3.
+Por tanto, K=4 presenta un coste adicional de contexto y puede introducir más ruido. Sin embargo, este incremento permite resolver correctamente q10, que falla con K=3.
 
-Dado el reducido tamaño absoluto del contexto recuperado y la mejora observada
-en Evidence hit, el coste adicional se considera asumible para MadridRumbo.
+Dado el reducido tamaño absoluto del contexto recuperado y la mejora observada en Evidence hit, el coste adicional se considera asumible para MadridRumbo.
 
 ---
 
@@ -377,14 +329,11 @@ Sobre las siete preguntas analizadas cualitativamente:
 - K=3 obtiene `Evidence hit` en 6/7 preguntas.
 - K=4 obtiene `Evidence hit` en 7/7 preguntas.
 
-La mejora procede de q10, donde el cuarto fragmento contiene evidencia
-imprescindible que no aparece dentro del Top-3.
+La mejora procede de q10, donde el cuarto fragmento contiene evidencia imprescindible que no aparece dentro del Top-3.
 
-El principal inconveniente es el ruido añadido: en seis de las siete
-preguntas el cuarto fragmento es redundante o irrelevante.
+El principal inconveniente es el ruido añadido: en seis de las siete preguntas el cuarto fragmento es redundante o irrelevante.
 
-Sin embargo, el incremento de contexto se considera asumible frente a la
-mejora obtenida en cobertura de evidencia.
+Sin embargo, el incremento de contexto se considera asumible frente a la mejora obtenida en cobertura de evidencia.
 
 Por ello se selecciona K=4 como valor definitivo para el retrieval.
 
@@ -394,19 +343,13 @@ Por ello se selecciona K=4 como valor definitivo para el retrieval.
 
 **Configuración seleccionada: `K = 4`**
 
-La elección se basa en que ambos valores recuperan la fuente esperada en
-el 100 % de las 11 preguntas in-corpus, pero K=4 mejora la recuperación
-efectiva de evidencia en el análisis cualitativo.
+La elección se basa en que ambos valores recuperan la fuente esperada en el 100 % de las 11 preguntas in-corpus, pero K=4 mejora la recuperación efectiva de evidencia en el análisis cualitativo.
 
-Con K=3 se obtiene evidencia suficiente en 6 de las 7 preguntas evaluadas
-(85,7 %), mientras que con K=4 se obtiene en las 7 (100 %).
+Con K=3 se obtiene evidencia suficiente en 6 de las 7 preguntas evaluadas (85,7 %), mientras que con K=4 se obtiene en las 7 (100 %).
 
-La mejora se concentra en q10, cuyo cuarto fragmento contiene información
-necesaria que no estaba disponible en el Top-3.
+La mejora se concentra en q10, cuyo cuarto fragmento contiene información necesaria que no estaba disponible en el Top-3.
 
-Aunque K=4 introduce información redundante o irrelevante en otras consultas,
-el coste adicional de recuperar un único chunk se considera aceptable para
-MadridRumbo.
+Aunque K=4 introduce información redundante o irrelevante en otras consultas, el coste adicional de recuperar un único chunk se considera aceptable para MadridRumbo.
 
 La configuración definitiva de retrieval queda por tanto establecida en:
 
@@ -414,5 +357,4 @@ La configuración definitiva de retrieval queda por tanto establecida en:
 TOP_K = 4
 ```
 
-Esta decisión es específica para el corpus, la estrategia de chunking
-400 / 50 y el conjunto de evaluación utilizados en MadridRumbo.
+Esta decisión es específica para el corpus, la estrategia de chunking 400 / 50 y el conjunto de evaluación utilizados en MadridRumbo.

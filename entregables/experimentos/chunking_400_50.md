@@ -30,8 +30,7 @@ El experimento pretende analizar dos aspectos:
 | Modelo de embeddings | `gemini-embedding-2` |
 | Base vectorial | ChromaDB |
 
-Respecto al experimento baseline 800 / 100, se mantienen constantes el corpus,
-el modelo de embeddings, el valor de `K` y el resto de parámetros del pipeline.
+Respecto al experimento baseline 800 / 100, se mantienen constantes el corpus,  el modelo de embeddings, el valor de `K` y el resto de parámetros del pipeline.
 
 De esta forma, la variable experimental principal es el tamaño de los chunks.
 
@@ -49,8 +48,7 @@ La estrategia del CSV se mantendrá constante durante todos los experimentos par
 
 ## 3. Hipótesis
 
-Al reducir `CHUNK_SIZE` de 800 a 400 caracteres se espera generar un mayor
-número de chunks en las fuentes documentales.
+Al reducir `CHUNK_SIZE` de 800 a 400 caracteres se espera generar un mayor número de chunks en las fuentes documentales.
 
 Los fragmentos más pequeños podrían mejorar la precisión del retrieval al contener menos información no relacionada con cada consulta.
 
@@ -149,8 +147,7 @@ La fuente esperada aparece entre los tres chunks recuperados.
 
 **Evidence hit @3**
 
-El contenido recuperado contiene realmente la información necesaria para
-responder a la pregunta según el criterio definido en
+El contenido recuperado contiene realmente la información necesaria para responder a la pregunta según el criterio definido en
 `queries/eval_preguntas.json`.
 
 ---
@@ -182,20 +179,15 @@ responder a la pregunta según el criterio definido en
 
 ### FAQ
 
-La configuración 400 / 50 ofrece buenos resultados en las preguntas
-procedentes de las FAQ.
+La configuración 400 / 50 ofrece buenos resultados en las preguntas procedentes de las FAQ.
 
-En q01 y q05 la fuente esperada aparece en primera posición y el contexto
-recuperado contiene evidencia suficiente para responder.
+En q01 y q05 la fuente esperada aparece en primera posición y el contexto recuperado contiene evidencia suficiente para responder.
 
-En q01 los tres fragmentos contienen información útil, aunque el primero
-es el que proporciona la respuesta de forma más directa.
+En q01 los tres fragmentos contienen información útil, aunque el primero es el que proporciona la respuesta de forma más directa.
 
-Respecto al baseline 800 / 100, q01 mejora la posición de la fuente esperada
-desde la tercera hasta la primera posición.
+Respecto al baseline 800 / 100, q01 mejora la posición de la fuente esperada desde la tercera hasta la primera posición.
 
-Esto sugiere que una mayor granularidad puede facilitar que el embedding de
-la consulta se aproxime a fragmentos más específicos del documento.
+Esto sugiere que una mayor granularidad puede facilitar que el embedding de la consulta se aproxime a fragmentos más específicos del documento.
 
 ### Billetes y tarifas
 
@@ -205,58 +197,39 @@ En ambos casos la fuente esperada aparece en primera posición.
 
 En q03 los dos fragmentos restantes no contienen información relevante.
 
-En q08 el tercer fragmento contiene información relacionada, aunque no sería
-suficiente por sí solo para responder con la precisión exigida. El segundo
-resultado no resulta relevante.
+En q08 el tercer fragmento contiene información relacionada, aunque no sería suficiente por sí solo para responder con la precisión exigida. El segundo resultado no resulta relevante.
 
-Comparado con 800 / 100, q08 mejora la posición de la fuente esperada desde
-la segunda hasta la primera posición.
+Comparado con 800 / 100, q08 mejora la posición de la fuente esperada desde la segunda hasta la primera posición.
 
-Por tanto, en estas consultas la reducción del tamaño del chunk parece
-favorecer una recuperación más precisa sin perder la evidencia necesaria.
+Por tanto, en estas consultas la reducción del tamaño del chunk parece favorecer una recuperación más precisa sin perder la evidencia necesaria.
 
 ### PDF
 
-El comportamiento sobre los PDF muestra tanto mejoras como una posible
-limitación de utilizar chunks más pequeños.
+El comportamiento sobre los PDF muestra tanto mejoras como una posible limitación de utilizar chunks más pequeños.
 
-En q09 la fuente esperada pasa de la tercera posición obtenida con 800 / 100
-a la primera posición con 400 / 50.
+En q09 la fuente esperada pasa de la tercera posición obtenida con 800 / 100 a la primera posición con 400 / 50.
 
-Los otros dos fragmentos contienen información relacionada pero incompleta,
-por lo que el primer resultado es suficiente para responder correctamente.
+Los otros dos fragmentos contienen información relacionada pero incompleta, por lo que el primer resultado es suficiente para responder correctamente.
 
 El comportamiento de q10 es diferente.
 
-Con 800 / 100 la fuente esperada aparecía en primera posición pero el
-fragmento recuperado no contenía toda la evidencia necesaria.
+Con 800 / 100 la fuente esperada aparecía en primera posición pero el fragmento recuperado no contenía toda la evidencia necesaria.
 
-Con 400 / 50 la fuente esperada sigue apareciendo dentro del Top-3, pero pasa
-a la tercera posición y ninguno de los tres fragmentos recuperados contiene
-toda la evidencia exigida.
+Con 400 / 50 la fuente esperada sigue apareciendo dentro del Top-3, pero pasa a la tercera posición y ninguno de los tres fragmentos recuperados contiene toda la evidencia exigida.
 
-Al aumentar de forma exploratoria el retrieval a K=4, el cuarto fragmento sí
-contiene la evidencia necesaria.
+Al aumentar de forma exploratoria el retrieval a K=4, el cuarto fragmento sí contiene la evidencia necesaria.
 
-Este resultado no se contabiliza como acierto del experimento, ya que la
-comparación se realiza manteniendo K=3 constante, pero resulta útil para
-diagnosticar el comportamiento del sistema.
+Este resultado no se contabiliza como acierto del experimento, ya que la comparación se realiza manteniendo K=3 constante, pero resulta útil para diagnosticar el comportamiento del sistema.
 
-El resultado sugiere que la reducción del tamaño de los chunks puede haber
-fragmentado información que necesita mantenerse próxima. El retriever localiza
-el documento correcto, pero la evidencia completa queda situada en un
-fragmento que no alcanza las tres primeras posiciones.
+El resultado sugiere que la reducción del tamaño de los chunks puede haber fragmentado información que necesita mantenerse próxima. El retriever localiza el documento correcto, pero la evidencia completa queda situada en un fragmento que no alcanza las tres primeras posiciones.
 
 ### CSV de paradas
 
 q11 mantiene el mismo comportamiento observado en el baseline.
 
-La fuente esperada aparece en primera posición, existe evidencia suficiente
-y los tres fragmentos recuperados contienen información relevante.
+La fuente esperada aparece en primera posición, existe evidencia suficiente y los tres fragmentos recuperados contienen información relevante.
 
-Este comportamiento estable era esperable, ya que los bloques procedentes
-de `Paradas CRTM.csv` no utilizan `RecursiveCharacterTextSplitter` y por
-tanto no se ven afectados directamente por el cambio de 800 / 100 a 400 / 50.
+Este comportamiento estable era esperable, ya que los bloques procedentes de `Paradas CRTM.csv` no utilizan `RecursiveCharacterTextSplitter` y por tanto no se ven afectados directamente por el cambio de 800 / 100 a 400 / 50.
 
 El resultado refuerza su utilidad como caso de control del experimento.
 
@@ -264,43 +237,28 @@ El resultado refuerza su utilidad como caso de control del experimento.
 
 ## 8. Conclusión provisional
 
-La configuración 400 / 50 modifica de forma importante la fragmentación de
-las fuentes documentales.
+La configuración 400 / 50 modifica de forma importante la fragmentación de las fuentes documentales.
 
-El número de chunks documentales aumenta de 87 a 185, lo que supone un
-incremento aproximado del 112,6 %. El tamaño medio de estos nuevos fragmentos
-es de 297,24 caracteres, con una mediana de 334 y un máximo de 400 caracteres.
+El número de chunks documentales aumenta de 87 a 185, lo que supone un incremento aproximado del 112,6 %. El tamaño medio de estos nuevos fragmentos es de 297,24 caracteres, con una mediana de 334 y un máximo de 400 caracteres.
 
-En retrieval, esta mayor granularidad mejora claramente la posición de las
-fuentes esperadas.
+En retrieval, esta mayor granularidad mejora claramente la posición de las fuentes esperadas.
 
-La fuente esperada aparece en primera posición en 6 de las 7 preguntas
-evaluadas, frente a 4 de 7 con la configuración 800 / 100. La posición media
-también mejora de 1,71 a 1,29.
+La fuente esperada aparece en primera posición en 6 de las 7 preguntas evaluadas, frente a 4 de 7 con la configuración 800 / 100. La posición media también mejora de 1,71 a 1,29.
 
-Sin embargo, esta mejora en el ranking no se traduce en un aumento de la
-recuperación efectiva de evidencia.
+Sin embargo, esta mejora en el ranking no se traduce en un aumento de la recuperación efectiva de evidencia.
 
 Ambas configuraciones obtienen:
 
 - `Source hit @3`: 7/7.
 - `Evidence hit @3`: 6/7.
 
-Por tanto, la configuración 400 / 50 produce fragmentos más específicos y
-parece mejorar la precisión del ranking, pero no aumenta el número de
-preguntas que pueden responderse con la evidencia disponible en Top-3.
+Por tanto, la configuración 400 / 50 produce fragmentos más específicos y parece mejorar la precisión del ranking, pero no aumenta el número de preguntas que pueden responderse con la evidencia disponible en Top-3.
 
-El caso q10 muestra además una posible desventaja de los chunks pequeños.
-La evidencia completa aparece al ampliar experimentalmente la búsqueda a
-K=4, pero queda fuera del Top-3 utilizado en la comparación.
+El caso q10 muestra además una posible desventaja de los chunks pequeños. La evidencia completa aparece al ampliar experimentalmente la búsqueda a K=4, pero queda fuera del Top-3 utilizado en la comparación.
 
-Esto sugiere que una fragmentación más fina puede mejorar la correspondencia
-semántica entre consulta y fragmento, pero también separar información
-relacionada que sería útil conservar conjuntamente.
+Esto sugiere que una fragmentación más fina puede mejorar la correspondencia semántica entre consulta y fragmento, pero también separar información relacionada que sería útil conservar conjuntamente.
 
-Por el momento, no existe evidencia suficiente para considerar 400 / 50
-superior a 800 / 100. Será necesario comparar estos resultados con una
-configuración de chunks más grandes.
+Por el momento, no existe evidencia suficiente para considerar 400 / 50 superior a 800 / 100. Será necesario comparar estos resultados con una configuración de chunks más grandes.
 
 ---
 

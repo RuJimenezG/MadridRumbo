@@ -9,9 +9,7 @@ El objetivo es observar el comportamiento del corpus y del retrieval utilizando 
 - `CHUNK_SIZE = 800`
 - `CHUNK_OVERLAP = 100`
 
-Esta configuración corresponde al baseline utilizado durante el desarrollo del
-proyecto y servirá como referencia para compararla posteriormente con otras
-configuraciones de chunking.
+Esta configuración corresponde al baseline utilizado durante el desarrollo del proyecto y servirá como referencia para compararla posteriormente con otras configuraciones de chunking.
 
 El experimento pretende analizar dos aspectos:
 
@@ -32,10 +30,7 @@ El experimento pretende analizar dos aspectos:
 | Modelo de embeddings | `gemini-embedding-2` |
 | Base vectorial | ChromaDB |
 
-Durante la comparación con las siguientes configuraciones se mantendrán
-constantes el corpus, el modelo de embeddings, el valor de `K` y el resto de
-parámetros del pipeline. De esta forma, la principal variable modificada será
-la estrategia de chunking.
+Durante la comparación con las siguientes configuraciones se mantendrán constantes el corpus, el modelo de embeddings, el valor de `K` y el resto de parámetros del pipeline. De esta forma, la principal variable modificada será la estrategia de chunking.
 
 ### Tratamiento especial del CSV
 
@@ -65,8 +60,7 @@ No se presupone que sea la configuración óptima: la decisión final se realiza
 
 ## 4. Efecto sobre el corpus
 
-Tras ejecutar el pipeline con la configuración 800 / 100 se obtienen las
-siguientes estadísticas:
+Tras ejecutar el pipeline con la configuración 800 / 100 se obtienen las siguientes estadísticas:
 
 | Métrica | Resultado |
 |---|---:|
@@ -95,47 +89,32 @@ siguientes estadísticas:
 
 ### Observación
 
-Con la configuración `CHUNK_SIZE = 800` y `CHUNK_OVERLAP = 100`
-se generan 3.835 chunks a partir de 3.758 documentos.
+Con la configuración `CHUNK_SIZE = 800` y `CHUNK_OVERLAP = 100` se generan 3.835 chunks a partir de 3.758 documentos.
 
-La mayor parte del índice corresponde a `Paradas CRTM.csv`, con
-3.748 chunks. Esto supone aproximadamente el 97,7 % del total.
+La mayor parte del índice corresponde a `Paradas CRTM.csv`, con 3.748 chunks. Esto supone aproximadamente el 97,7 % del total.
 
-Sin embargo, este resultado no depende directamente de los parámetros
-`CHUNK_SIZE` y `CHUNK_OVERLAP`, ya que las paradas utilizan una
-estrategia específica de agrupación en bloques y no pasan por
-`RecursiveCharacterTextSplitter`.
+Sin embargo, este resultado no depende directamente de los parámetros `CHUNK_SIZE` y `CHUNK_OVERLAP`, ya que las paradas utilizan una estrategia específica de agrupación en bloques y no pasan por `RecursiveCharacterTextSplitter`.
 
-Las fuentes documentales sometidas al splitter generan en conjunto
-87 chunks:
+Las fuentes documentales sometidas al splitter generan en conjunto 87 chunks:
 
 - `crtm_faq.md`: 36
 - `crtm_billetes_tarifas.md`: 20
 - `bocm-20251231-precios_transporte.pdf`: 17
 - `bocm-20251231-tarifas_transporte.pdf`: 14
 
-El tamaño medio de los chunks es de 549,69 caracteres y la mediana
-de 597 caracteres, ambos claramente inferiores al máximo configurado
-de 800 caracteres.
+El tamaño medio de los chunks es de 549,69 caracteres y la mediana de 597 caracteres, ambos claramente inferiores al máximo configurado de 800 caracteres.
 
-Esto es esperable porque `CHUNK_SIZE` establece un tamaño máximo y no
-obliga a que todos los fragmentos alcancen dicho tamaño. El splitter
-intenta respetar separaciones naturales del texto cuando es posible.
+Esto es esperable porque `CHUNK_SIZE` establece un tamaño máximo y no obliga a que todos los fragmentos alcancen dicho tamaño. El splitter intenta respetar separaciones naturales del texto cuando es posible.
 
-La proximidad entre media y mediana indica que, globalmente, no existe
-una diferencia extrema entre ambas medidas, aunque el tamaño mínimo
-de 119 caracteres confirma la existencia de algunos fragmentos
-considerablemente menores que el límite configurado.
+La proximidad entre media y mediana indica que, globalmente, no existe una diferencia extrema entre ambas medidas, aunque el tamaño mínimo de 119 caracteres confirma la existencia de algunos fragmentos considerablemente menores que el límite configurado.
 
 ---
 
 ## 5. Evaluación del retrieval
 
-Para comparar las distintas configuraciones de chunking se utiliza `K = 3`
-en todos los experimentos.
+Para comparar las distintas configuraciones de chunking se utiliza `K = 3` en todos los experimentos.
 
-Se selecciona un subconjunto representativo del conjunto de evaluación del
-proyecto.
+Se selecciona un subconjunto representativo del conjunto de evaluación del proyecto.
 
 | ID | Fuente esperada | Objetivo |
 |---|---|---|
@@ -156,8 +135,7 @@ La fuente esperada aparece entre los tres chunks recuperados.
 **Evidence hit @3**
 
 El contenido recuperado contiene realmente la información necesaria para
-responder a la pregunta de acuerdo con el criterio de evidencia definido en
-`queries/eval_preguntas.json`.
+responder a la pregunta de acuerdo con el criterio de evidencia definido en  queries/eval_preguntas.json`.
 
 ---
 
@@ -190,107 +168,63 @@ responder a la pregunta de acuerdo con el criterio de evidencia definido en
 
 Las preguntas q01 y q05 recuperan correctamente la evidencia necesaria.
 
-En q05 la fuente esperada aparece como primer resultado, lo que muestra
-una recuperación directa y precisa.
+En q05 la fuente esperada aparece como primer resultado, lo que muestra una recuperación directa y precisa.
 
-En q01 la fuente esperada aparece en tercera posición. Sin embargo,
-los otros fragmentos recuperados también contienen información suficiente
-para responder a la pregunta.
+En q01 la fuente esperada aparece en tercera posición. Sin embargo, los otros fragmentos recuperados también contienen información suficiente para responder a la pregunta.
 
-Esto indica que determinada información sobre títulos de transporte puede
-estar repetida o explicada desde distintos puntos del corpus. En este caso,
-la posición de la fuente esperada no implica necesariamente una peor
-capacidad de respuesta, ya que el contexto recuperado sigue conteniendo
-evidencia válida.
+Esto indica que determinada información sobre títulos de transporte puede  estar repetida o explicada desde distintos puntos del corpus. En este caso, la posición de la fuente esperada no implica necesariamente una peor capacidad de respuesta, ya que el contexto recuperado sigue conteniendo evidencia válida.
 
 ### Billetes y tarifas
 
 Las preguntas q03 y q08 recuperan la fuente y la evidencia necesarias.
 
-En q03 la información relevante aparece directamente en primera posición
-y los otros dos fragmentos no aportan información útil para la consulta.
+En q03 la información relevante aparece directamente en primera posición y los otros dos fragmentos no aportan información útil para la consulta.
 
-En q08 la fuente esperada aparece en segunda posición. El primer fragmento
-contiene información relacionada con la pregunta, pero por sí solo no
-permitiría responderla con la precisión requerida por el criterio de
-evidencia. El tercer resultado no resulta relevante.
+En q08 la fuente esperada aparece en segunda posición. El primer fragmento contiene información relacionada con la pregunta, pero por sí solo no permitiría responderla con la precisión requerida por el criterio de evidencia. El tercer resultado no resulta relevante.
 
-Este comportamiento muestra la utilidad de recuperar varios fragmentos:
-con `K = 1`, q08 podría disponer de contexto relacionado pero insuficiente,
-mientras que con `K = 3` aparece la evidencia necesaria.
+Este comportamiento muestra la utilidad de recuperar varios fragmentos: con `K = 1`, q08 podría disponer de contexto relacionado pero insuficiente, mientras que con `K = 3` aparece la evidencia necesaria.
 
 ### PDF
 
 Los documentos PDF presentan resultados más variables.
 
-En q09 la evidencia necesaria se encuentra en la fuente esperada, pero esta
-aparece en tercera posición. Los dos primeros fragmentos contienen información
-relacionada con la consulta, aunque de forma incompleta.
+En q09 la evidencia necesaria se encuentra en la fuente esperada, pero esta aparece en tercera posición. Los dos primeros fragmentos contienen información relacionada con la consulta, aunque de forma incompleta.
 
-El caso q10 resulta especialmente relevante. La fuente esperada se recupera
-en primera posición, por lo que se obtiene un `Source hit @3`, pero el fragmento
-recuperado no contiene toda la información exigida por el criterio de evidencia.
+El caso q10 resulta especialmente relevante. La fuente esperada se recupera en primera posición, por lo que se obtiene un `Source hit @3`, pero el fragmento recuperado no contiene toda la información exigida por el criterio de evidencia.
 
 Por tanto, q10 obtiene `Source hit @3 = Sí` pero `Evidence hit @3 = No`.
 
-Este resultado demuestra que recuperar el documento correcto no garantiza
-haber recuperado el fragmento adecuado del documento. En fuentes como los PDF
-oficiales, donde la información procede en parte de tablas y estructuras
-complejas, el tamaño y los límites de los chunks pueden afectar a que una
-evidencia completa quede contenida en un único fragmento.
+Este resultado demuestra que recuperar el documento correcto no garantiza haber recuperado el fragmento adecuado del documento. En fuentes como los PDF oficiales, donde la información procede en parte de tablas y estructuras complejas, el tamaño y los límites de los chunks pueden afectar a que una evidencia completa quede contenida en un único fragmento.
 
-Este caso será especialmente útil para comparar las siguientes configuraciones
-de chunking.
+Este caso será especialmente útil para comparar las siguientes configuraciones de chunking.
 
 ### CSV de paradas
 
-q11 recupera correctamente información sobre la parada consultada y la fuente
-esperada aparece en primera posición.
+q11 recupera correctamente información sobre la parada consultada y la fuente esperada aparece en primera posición.
 
 Además, los tres fragmentos recuperados contienen información relevante.
 
-Este caso funciona como control del experimento, ya que la fragmentación de
-`Paradas CRTM.csv` no depende de `CHUNK_SIZE` ni de `CHUNK_OVERLAP`.
+Este caso funciona como control del experimento, ya que la fragmentación de `Paradas CRTM.csv` no depende de `CHUNK_SIZE` ni de `CHUNK_OVERLAP`.
 
-Por ello, se espera que su comportamiento permanezca relativamente estable
-en los siguientes experimentos. Una variación importante en q11 debería
-analizarse con cautela, ya que no podría atribuirse directamente al splitter
-utilizado para las fuentes documentales.
+Por ello, se espera que su comportamiento permanezca relativamente estable en los siguientes experimentos. Una variación importante en q11 debería analizarse con cautela, ya que no podría atribuirse directamente al splitter utilizado para las fuentes documentales.
 
 ---
 
 ## 8. Conclusión provisional
 
-La configuración 800 / 100 proporciona un baseline sólido para la comparación
-con las siguientes estrategias.
+La configuración 800 / 100 proporciona un baseline sólido para la comparación con las siguientes estrategias.
 
-En las siete preguntas seleccionadas, la fuente esperada aparece dentro del
-Top-3 en todos los casos, obteniéndose un `Source hit @3` de 7/7 (100 %).
+En las siete preguntas seleccionadas, la fuente esperada aparece dentro del Top-3 en todos los casos, obteniéndose un `Source hit @3` de 7/7 (100 %).
 
-Sin embargo, la recuperación de la fuente correcta no garantiza por sí sola
-que el contexto contenga toda la información necesaria. El criterio
-`Evidence hit @3` se cumple en 6 de las 7 preguntas (85,7 %).
+Sin embargo, la recuperación de la fuente correcta no garantiza por sí sola que el contexto contenga toda la información necesaria. El criterio `Evidence hit @3` se cumple en 6 de las 7 preguntas (85,7 %).
 
-El caso q10 es especialmente significativo: el sistema recupera la fuente
-esperada en primera posición, pero el fragmento obtenido no contiene toda la
-evidencia necesaria para responder correctamente. Esto pone de manifiesto la
-necesidad de evaluar los chunks recuperados y no únicamente el fichero del que
-proceden.
+El caso q10 es especialmente significativo: el sistema recupera la fuente esperada en primera posición, pero el fragmento obtenido no contiene toda la evidencia necesaria para responder correctamente. Esto pone de manifiesto la necesidad de evaluar los chunks recuperados y no únicamente el fichero del que proceden.
 
-También se observa que en varias preguntas la evidencia suficiente no coincide
-necesariamente con la primera aparición de la fuente esperada. En q08 y q09,
-por ejemplo, es necesario disponer de varios resultados para alcanzar el
-contexto adecuado.
+También se observa que en varias preguntas la evidencia suficiente no coincide necesariamente con la primera aparición de la fuente esperada. En q08 y q09, por ejemplo, es necesario disponer de varios resultados para alcanzar el contexto adecuado.
 
-Por otra parte, el corpus generado continúa estando dominado numéricamente por
-los bloques de `Paradas CRTM.csv`, que representan aproximadamente el 97,7 %
-de los chunks. No obstante, estos bloques utilizan una estrategia propia y no
-están afectados directamente por los parámetros 800 / 100.
+Por otra parte, el corpus generado continúa estando dominado numéricamente por los bloques de `Paradas CRTM.csv`, que representan aproximadamente el 97,7 % de los chunks. No obstante, estos bloques utilizan una estrategia propia y no están afectados directamente por los parámetros 800 / 100.
 
-Por tanto, esta primera ejecución no permite todavía afirmar que 800 / 100 sea
-la configuración óptima. Sus resultados servirán como referencia para observar
-si configuraciones con chunks más pequeños o más grandes mejoran la recuperación
-de evidencia, especialmente en los documentos PDF.
+Por tanto, esta primera ejecución no permite todavía afirmar que 800 / 100 sea la configuración óptima. Sus resultados servirán como referencia para observar si configuraciones con chunks más pequeños o más grandes mejoran la recuperación de evidencia, especialmente en los documentos PDF.
 
 ---
 
