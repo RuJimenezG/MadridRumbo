@@ -76,6 +76,7 @@ MadridRumbo/
 ├── main.py                     # Punto de entrada por CLI
 ├── app.py                      # Interfaz web con Streamlit
 ├── config.py                   # Configuración general del proyecto
+├── prompt.py                   # Plantilla del prompt de generación
 ├── requirements.txt            # Dependencias
 ├── .env.example                # Plantilla de variables de entorno
 │
@@ -111,7 +112,8 @@ MadridRumbo/
 | `embed.py`                          | Conversión de los chunks y consultas en embeddings.                                 |
 | `index.py`                          | Persistencia de los embeddings y documentos en ChromaDB.                            |
 | `retrieve.py`                       | Recuperación de los chunks más relevantes para una consulta.                        |
-| `generate.py`                       | Generación de respuestas utilizando exclusivamente el contexto recuperado.          |
+| `prompt.py`                          | Plantilla del prompt (`PROMPT_TEMPLATE`), separada de la lógica de generación para poder reutilizarla en futuros trabajos. |
+| `generate.py`                       | Generación de respuestas utilizando exclusivamente el contexto recuperado. Importa el prompt desde `prompt.py`.          |
 | `responder.py`                      | Centraliza el flujo `retrieve → generate` y devuelve respuesta, fuentes y métricas. |
 | `main.py`                           | Expone las operaciones principales mediante CLI.                                    |
 | `app.py`                            | Proporciona la interfaz gráfica mediante Streamlit.                                 |

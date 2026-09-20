@@ -8,11 +8,11 @@ Uso:
   python main.py --ask "..."            -> RAG completo: retrieval + generación (Gemini)
   python main.py --ask "..." --k 6
 
-CORREGIDO (Persona 2): antes solo existía --prepare, que ejecutaba la ingesta
-y el pipeline de embeddings.json de Gemini, pero nunca llegaba a poblar
-ChromaDB. Como generate.py espera chunks de retrieve.py (que lee de
-ChromaDB), sin --index el sistema nunca podía responder a --ask. Añadidos
---index, --query y --ask para cerrar el ciclo completo.
+Los comandos disponibles permiten preparar el corpus, indexarlo en
+ChromaDB, consultar el contexto recuperado y ejecutar el flujo RAG
+completo. --prepare prepara el corpus y genera los embeddings,
+--index almacena los chunks en ChromaDB, --query permite comprobar
+el retrieval y --ask ejecuta la generación de respuestas.
 """
 import argparse
 
@@ -24,11 +24,9 @@ from src.pipeline import ejecutar_ingesta
 from src.embed import ejecutar_embeddings
 from src.index import index_chunks
 from src.retrieve import retrieve, format_context
-# CORREGIDO (Persona 2): "from src.generate import generate" aquí arriba
-# rompía --prepare, --index y --query sin GEMINI_API_KEY configurada, porque
-# generate.py crea el cliente de Gemini al importar el módulo (no dentro de
-# una función). Se importa solo dentro de _cmd_ask(),
-# para que el resto de comandos funcionen sin esa clave.
+# El módulo de generación se importa únicamente cuando se ejecuta --ask.
+# De esta forma, los comandos --prepare, --index y --query pueden
+# utilizarse sin necesidad de inicializar el cliente de Gemini.
 
 
 def _cmd_prepare() -> None:
