@@ -135,7 +135,7 @@ python -m venv .venv
 Activación en Windows:
 
 ```bash
-.venv\Scripts\activate
+.venv\Scripts\activate.ps1
 ```
 
 Activación en Linux/macOS:
