@@ -408,7 +408,7 @@ Actualmente contiene **15 preguntas**, incluyendo casos dentro y fuera del corpu
 Para evaluar la recuperación de información:
 
 ```bash
-python eval_retrieval.py --k 1 3 5
+python eval_retrieval.py --k 3 4
 ```
 
 El script ejecuta las mismas preguntas con distintos valores de `K` y comprueba si la fuente esperada aparece entre los chunks recuperados.
@@ -458,6 +458,8 @@ La evaluación busca comprobar principalmente:
 MadridRumbo es un proyecto académico y presenta algunas limitaciones propias de su alcance y de la arquitectura implementada:
 
 * **Información limitada al corpus:** el sistema únicamente puede responder utilizando la información previamente incorporada al corpus. No consulta información en tiempo real, por lo que no puede responder de forma fiable sobre incidencias, horarios actuales o cambios posteriores a la fecha de actualización de las fuentes.
+
+* **Limitación del retrieval en consultas composicionales:** el sistema no es capaz de responder preguntas como `¿Cuál es el precio del billete para ir desde las Estación A hasta la Estación B?` ya que al buscar los chunks semánticamente más próximos todos proceden de `Paradas CRTM.csv` y nunca consigue recuperar la información sobre la tarificación de la que dispone.
 
 * **Extracción de información desde PDF:** algunos documentos oficiales contienen tablas cuya estructura puede perderse parcialmente durante la extracción a texto. Esto puede dificultar la recuperación de determinados precios o condiciones aunque la información esté presente visualmente en el documento original.
 

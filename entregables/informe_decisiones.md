@@ -42,7 +42,7 @@ Durante el desarrollo se estudiaron varias estrategias para reducir esta desprop
 
 La alternativa más agresiva reducía enormemente el tamaño del índice, pero sacrificaba información potencialmente útil sobre cada parada.
 
-### Estrategia adoptada
+### Estrategia específica para el CSV
 
 Como solución intermedia, la implementación actual agrupa las paradas por **tipo de transporte y zona tarifaria**, generando bloques de hasta seis paradas.
 
@@ -52,16 +52,54 @@ Para el resto de documentos se utiliza `RecursiveCharacterTextSplitter`, con los
 
 Esta estrategia busca mantener suficiente información de cada parada reduciendo al mismo tiempo la fragmentación excesiva que producía la estrategia inicial.
 
-**Resultado final del corpus tras aplicar la estrategia actual:**
+### Experimento de `CHUNK_SIZE` y `CHUNK_OVERLAP`
 
-> **PENDIENTE:** actualizar tras ejecutar de nuevo `python main.py --prepare` con la versión definitiva.
+Para determinar la configuración de fragmentación de las fuentes documentales se compararon tres combinaciones de `CHUNK_SIZE` y `CHUNK_OVERLAP`.
 
-| Métrica                                | Resultado final |
-| -------------------------------------- | --------------: |
-| Documentos cargados                    |       PENDIENTE |
-| Chunks totales                         |       PENDIENTE |
-| Chunks procedentes del CSV             |       PENDIENTE |
-| Chunks procedentes de FAQ/Markdown/PDF |       PENDIENTE |
+Durante el experimento se mantuvieron constantes el corpus, el modelo de embeddings (`gemini-embedding-2`), la base vectorial y `K = 3`.
+
+La estrategia específica de `Paradas CRTM.csv` también se mantuvo constante, por lo que los cambios de configuración afectaron principalmente a los documentos Markdown y PDF.
+
+| Métrica | 400 / 50 | 800 / 100 | 1200 / 150 |
+|---|---:|---:|---:|
+| Chunks totales | 3933 | 3835 | 3807 |
+| Chunks documentales | 185 | 87 | 59 |
+| Source hit @3 | 7/7 | 7/7 | 6/7 |
+| Evidence hit @3 | 6/7 | 6/7 | 6/7 |
+| Fuente esperada en Top-1 | 6/7 | 4/7 | 5/7 |
+| Posición media de la fuente esperada | 1,29 | 1,71 | 1,33 |
+
+Las tres configuraciones obtuvieron el mismo resultado global de `Evidence hit @3`: 6 aciertos sobre 7 preguntas. Sin embargo, presentaron diferencias importantes en el ranking y en el tipo de errores cometidos.
+
+La configuración 400 / 50 obtuvo el comportamiento más consistente. La fuente esperada apareció dentro del Top-3 en las siete preguntas y en primera posición en seis de ellas, obteniendo además la mejor posición media.
+
+Su principal desventaja es el incremento de la fragmentación documental: se generan 185 chunks documentales frente a 87 con 800 / 100. Sin embargo, el número total de vectores únicamente aumenta de 3835 a 3933, aproximadamente un 2,6 %, debido al peso de los bloques procedentes del CSV.
+
+La configuración 1200 / 150 mostró una ventaja diferente: los chunks de mayor tamaño permitieron resolver correctamente q10, cuya respuesta necesita conservar varios datos relacionados dentro del contexto. A cambio, q01 dejó de aparecer dentro del Top-3 y q08 empeoró su posición.
+
+La configuración 800 / 100 presentó un comportamiento intermedio. En q10 la fuente esperada era recuperada, pero el fragmento no contenía toda la evidencia necesaria. Una prueba adicional ampliando el retrieval a K=4 y K=5 tampoco permitió recuperar el fragmento correcto.
+
+Por tanto, se selecciona como configuración definitiva:
+
+```python
+CHUNK_SIZE = 400
+CHUNK_OVERLAP = 50
+```
+
+Esta elección no pretende establecer una configuración universalmente óptima, sino seleccionar el mejor compromiso observado para el corpus y el conjunto de evaluación de MadridRumbo.
+
+### Resultado final del corpus
+
+Con la configuración seleccionada, el corpus queda formado por:
+
+| Métrica                                  | Resultado final |
+| ---------------------------------------- | --------------: |
+| Documentos cargados                      |            3758 |
+| Documentos tras limpieza                 |            3758 |
+| Chunks totales                           |            3933 |
+| Chunks procedentes de `Paradas CRTM.csv` |            3748 |
+| Chunks procedentes de FAQ/Markdown/PDF   |             185 |
+
 
 ---
 
@@ -114,25 +152,88 @@ Este resultado fue uno de los motivos principales para modificar la estrategia d
 
 ### Evaluación con el corpus definitivo
 
-Los resultados anteriores corresponden a una versión anterior del pipeline y no deben utilizarse para valorar la implementación final.
+Una vez seleccionada como definitiva la configuración de chunking `CHUNK_SIZE = 400` y `CHUNK_OVERLAP = 50`, se regeneraron los chunks, embeddings y el índice ChromaDB.
+ Sobre este índice se realizó un experimento específico para determinar el
+valor de `K` utilizado por el retriever.
 
-Una vez regenerados los chunks, embeddings e índice con la estrategia actual, debe repetirse:
+Se compararon:
 
-```bash
-python eval_retrieval.py --k 1 3 5
+- `K = 3`
+- `K = 4`
+
+Durante la comparación se mantuvieron constantes el corpus, la estrategia de chunking, el modelo de embeddings y el índice vectorial. La única variable modificada fue el número de chunks recuperados.
+
+#### Evaluación automática de Source hit
+
+El script `eval_retrieval.py` se ejecutó sobre las 11 preguntas in-corpus de `queries/eval_preguntas.json`.
+
+Para cada pregunta se comprobó si la fuente esperada aparecía entre los `K` resultados recuperados.
+
+| K | Fuente esperada recuperada |
+|---:|---:|
+| 3 | 11 / 11 (100 %) |
+| 4 | 11 / 11 (100 %) |
+
+Aumentar K de 3 a 4 no mejora el `Source hit`, ya que con K=3 la fuente esperada ya aparece en el 100 % de las preguntas.
+
+Sin embargo, recuperar el documento correcto no garantiza que los chunks recuperados contengan toda la evidencia necesaria para responder.
+
+Por este motivo se realizó también una evaluación cualitativa sobre siete preguntas representativas del conjunto de evaluación.
+
+#### Evaluación de Evidence hit
+
+Se comprobó manualmente si los chunks recuperados contenían la evidencia definida en `criterio_evidencia` para cada pregunta.
+
+| Métrica | K=3 | K=4 |
+|---|---:|---:|
+| Source hit | 7 / 7 (100 %) | 7 / 7 (100 %) |
+| Evidence hit | 6 / 7 (85,7 %) | 7 / 7 (100 %) |
+| Evidencia suficiente en primera posición | 6 / 7 | 6 / 7 |
+
+La diferencia entre ambas configuraciones aparece en q10:
+
+> ¿Qué incremento se aplica a las tarifas del transporte público en 2026 y qué excepciones hay?
+
+El criterio de evaluación exige recuperar el incremento del 3 % y las excepciones correspondientes al abono joven y al título de 10 viajes de Castilla y León.
+
+Con `K = 3`, la fuente correcta se recupera, pero ninguno de los tres chunks contiene toda la evidencia necesaria.
+
+Con `K = 4`, el cuarto fragmento contiene la información que faltaba y la pregunta pasa a obtener `Evidence hit = Sí`.
+
+Esto demuestra que `Source hit` y `Evidence hit` miden aspectos distintos: el sistema puede recuperar el documento correcto sin haber recuperado todavía el fragmento adecuado para responder.
+
+#### Ruido introducido por K=4
+
+También se analizó la utilidad del cuarto fragmento recuperado en las siete preguntas:
+
+| Utilidad del cuarto chunk | Casos |
+|---|---:|
+| Necesario | 1 |
+| Útil | 0 |
+| Redundante | 2 |
+| Irrelevante | 4 |
+
+En seis de las siete preguntas el cuarto chunk no era necesario para responder.
+
+Por tanto, aumentar K introduce contexto adicional que en la mayoría de los casos resulta redundante o irrelevante. Sin embargo, en q10 ese fragmento adicional permite corregir un fallo real del retrieval.
+
+El coste adicional se considera limitado: no requiere regenerar embeddings ni el índice, y únicamente supone recuperar un fragmento más y aumentar ligeramente el contexto enviado posteriormente al modelo generador.
+
+### Decisión final sobre K
+
+Se selecciona:
+
+```python
+TOP_K = 4
 ```
 
-**Resultados finales:**
+Ambas configuraciones obtienen un `Source hit` del 100 % sobre las 11 preguntasin-corpus, pero K=4 mejora el `Evidence hit` del subconjunto analizado de 6/7 (85,7 %) a 7/7 (100 %).
 
-|  K | Aciertos in-corpus | Observación |
-| -: | -----------------: | ----------- |
-|  1 |          PENDIENTE | PENDIENTE   |
-|  3 |          PENDIENTE | PENDIENTE   |
-|  5 |          PENDIENTE | PENDIENTE   |
+Aunque el cuarto chunk introduce información redundante o irrelevante en varias consultas, el incremento de contexto se considera asumible frente a la mejora de cobertura observada en q10.
 
-**Conclusión final sobre K:**
+Por tanto, la configuración definitiva del retrieval de MadridRumbo queda establecida en `K = 4`.
 
-> **PENDIENTE:** completar después de ejecutar la evaluación definitiva. Debe indicarse si aumentar K mejora la recuperación de la fuente correcta o si únicamente introduce más ruido.
+Esta decisión es específica para el corpus, la estrategia de chunking 400 / 50 y el conjunto de evaluación utilizados en el proyecto.
 
 ---
 
@@ -153,26 +254,22 @@ El script de evaluación guarda los resultados después de cada pregunta. Esta d
 
 ### Ejemplo de acierto in-corpus
 
-> **PENDIENTE DE COMPLETAR CON UN RESULTADO REAL DE `eval_generacion_resultados.json`.**
-
 **Pregunta:**
-`[insertar pregunta evaluada]`
+`¿Puedo cambiar la zona del título ya cargado en mi tarjeta?`
 
 **Respuesta:**
-`[insertar respuesta obtenida]`
+`Sí, a lo largo de los 30 días del periodo de validez de una carga, si necesitas cambiar de zona puedes hacerlo en cualquiera de las Oficinas de Gestión, en los estancos y en las máquinas de metro.`
 
 **Fuentes recuperadas:**
-`[insertar fuentes]`
+`crtm_faq.md`
 
 **Valoración:**
 La respuesta se considera correcta porque está respaldada por el corpus y contiene la evidencia esperada definida en `eval_preguntas.json`.
 
 ### Ejemplo de abstención correcta
 
-> **PENDIENTE DE COMPLETAR CON UN RESULTADO REAL DE `eval_generacion_resultados.json`.**
-
 **Pregunta fuera de corpus:**
-`[insertar pregunta evaluada, por ejemplo una consulta ajena al transporte madrileño]`
+`¿Qué requisitos pide la beca MEC para estudiantes universitarios?`
 
 **Respuesta:**
 `No lo sé, no está en los documentos.`
@@ -332,7 +429,7 @@ El desarrollo de MadridRumbo ha mostrado que en un sistema RAG la calidad final 
 
 La representación del corpus tiene un impacto especialmente importante. El primer diseño conservaba un nivel muy alto de detalle para las paradas, pero el gran desequilibrio resultante perjudicaba el retrieval global.
 
-Los experimentos realizados llevaron a modificar la estrategia de chunking y a separar mejor los distintos tipos de información.
+El experimento de chunking comparó las configuraciones 400 / 50, 800 / 100 y 1200 / 150. Aunque las tres obtuvieron 6/7 en `Evidence hit @3`, 400 / 50 presentó el comportamiento más consistente en retrieval, con 7/7 en `Source hit @3`, 6/7 fuentes esperadas en primera posición y una posición media de 1,29. Por ello se adoptó como configuración definitiva para las fuentes documentales.
 
 También se han identificado limitaciones relacionadas con la extracción de tablas PDF y con la dependencia de APIs externas.
 
