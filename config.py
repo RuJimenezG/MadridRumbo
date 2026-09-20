@@ -46,7 +46,7 @@ EMBED_RPM_LIMIT = 2000  # La cuota gratuita de gemini-embedding-2 es de 100 RPM 
 
 
 # --- Retrieval ---
-TOP_K = int(os.getenv("TOP_K", 4))
+TOP_K = 4
 # Límite máximo de chunks que se pueden indexar en ChromaDB.
 # Se establece un valor suficientemente alto para cubrir el corpus actual
 # y evitar que documentos completos queden fuera de la indexación.
