@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- Ingesta y chunking ---
-CHUNK_SIZE = 800
-CHUNK_OVERLAP = 100
+CHUNK_SIZE = 400
+CHUNK_OVERLAP = 50
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -55,5 +55,5 @@ TOP_K = int(os.getenv("TOP_K", 4))
 MAX_CHUNKS = 25000
 
 # --- Generación (Gemini) ---
-GENERATION_MODEL = "gemini-3.6-flash"
+GENERATION_MODEL = "gemini-3.6-flash" # "gemini-3.1-flash-lite" | "gemini-3.6-flash"
 TEMPERATURE = 0.0
