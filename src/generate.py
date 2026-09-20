@@ -11,20 +11,9 @@ from google import genai
 from google.genai import types
 from config import GEMINI_API_KEY, GENERATION_MODEL, TEMPERATURE
 from src.retrieve import RetrievedChunk, format_context
+from prompt import PROMPT_TEMPLATE
 
 client = genai.Client(api_key=GEMINI_API_KEY)
-
-PROMPT_TEMPLATE = """Eres un asistente experto en transporte público de Madrid.
-Responde ÚNICAMENTE usando la información del CONTEXTO.
-Si el CONTEXTO no contiene la respuesta, di exactamente:
-"No lo sé, no está en los documentos." No inventes datos.
-
---- CONTEXTO ---
-{contexto}
-
---- PREGUNTA ---
-{pregunta}
-"""
 
 def generate(pregunta: str, chunks: list[RetrievedChunk]) -> str:
     contexto = format_context(chunks)
