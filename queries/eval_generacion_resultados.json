@@ -1,0 +1,178 @@
+[
+  {
+    "id": "q01",
+    "tipo": "in-corpus",
+    "pregunta": "¿Qué es la Tarjeta Azul y en qué medios de transporte es válida?",
+    "respuesta": "La **Tarjeta Azul** es un título de transporte (de 30 días) destinado a ciudadanos empadronados en el municipio de Madrid que cumplen determinadas características de edad o discapacidad, y que cuentan con un límite de renta. Se solicita a través del Ayuntamiento de Madrid.\n\nEs válida en los siguientes medios de transporte:\n* **Metro de Madrid** (zona A)\n* **Empresa Municipal de Transportes de Madrid** (EMT)\n* **Metros Ligeros de Madrid** (línea ML1)",
+    "fuentes": [
+      "crtm_billetes_tarifas.md",
+      "crtm_faq.md"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q02",
+    "tipo": "in-corpus",
+    "pregunta": "¿Qué documentación necesito para solicitar la Tarjeta Transporte Público Personal?",
+    "respuesta": "Según el contexto proporcionado, si se cumple con las condiciones que dan derecho a descuento, la documentación que se debe presentar es:\n\n* El **Carné de Familia Numerosa** o el **Certificado de Discapacidad igual o superior al 65%** (original).\n\nAsimismo, el documento especifica que no es necesario acreditar el requisito de empadronamiento en el caso de pertenecer a una Familia Numerosa.",
+    "fuentes": [
+      "crtm_faq.md"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q03",
+    "tipo": "in-corpus",
+    "pregunta": "¿Cuántas zonas tarifarias existen en el sistema de transporte de Madrid?",
+    "respuesta": "Existen 8 zonas tarifarias (6 de ellas dentro de la Comunidad de Madrid y 2 en Castilla-La Mancha).",
+    "fuentes": [
+      "crtm_billetes_tarifas.md"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q04",
+    "tipo": "in-corpus",
+    "pregunta": "¿Puedo cambiar la zona del título ya cargado en mi tarjeta?",
+    "respuesta": "Sí, a lo largo de los 30 días del periodo de validez de una carga, si necesitas cambiar de zona puedes hacerlo en cualquiera de las Oficinas de Gestión, en los estancos y en las máquinas de metro.",
+    "fuentes": [
+      "crtm_faq.md"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q05",
+    "tipo": "in-corpus",
+    "pregunta": "¿Qué pasa si cumplo 26 años mientras tengo cargado un abono de 30 días?",
+    "respuesta": "Si cumples 26 años durante el periodo de validez de una recarga de 30 días, tu perfil pasa de Joven a Normal, pero podrás terminar de consumir tu carga sin que se te aplique ningún suplemento tarifario. Tu tarjeta se actualizará cuando realices la siguiente carga.",
+    "fuentes": [
+      "crtm_billetes_tarifas.md",
+      "crtm_faq.md"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q06",
+    "tipo": "in-corpus",
+    "pregunta": "¿Cuánto cuesta emitir un duplicado de la tarjeta por extravío o robo?",
+    "respuesta": "Según la información proporcionada en el contexto, la emisión de una nueva tarjeta por extravío o robo tiene un coste de **6 euros** (en el caso de que el título cargado en la tarjeta fuese un Abono Anual).",
+    "fuentes": [
+      "bocm-20251231-precios_transporte.pdf",
+      "crtm_faq.md"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q07",
+    "tipo": "in-corpus",
+    "pregunta": "¿Qué descuentos existen para familias numerosas o personas con discapacidad?",
+    "respuesta": "Según la información proporcionada en el contexto, los descuentos existentes son los siguientes:\n\n**Para Familias Numerosas:**\n* **Categoría General:** Descuento del 20%.\n* **Categoría Especial:** Descuento del 50%.\n\n**Para Personas con Discapacidad (igual o superior al 65%):**\n* El contexto menciona que existen descuentos aplicables a este colectivo, pero **no especifica los porcentajes exactos** de descuento para discapacidad en los documentos.\n\n**Condiciones generales de los descuentos:**\n* Se aplican a cualquier tipología de billete (salvo turísticos, Tarjeta Azul y billetes gratuitos como el Infantil, el abono 7-14 o el +65).\n* Para beneficiarse de los descuentos en billetes sencillos o de diez viajes, los miembros de familias numerosas o personas con discapacidad (igual o mayor al 65%) deben obtener una Tarjeta Transporte Público Personal.",
+    "fuentes": [
+      "crtm_billetes_tarifas.md",
+      "crtm_faq.md"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q08",
+    "tipo": "in-corpus",
+    "pregunta": "¿Qué bonificaciones se mantienen en 2026 sobre el Abono Transporte y la Tarjeta Azul?",
+    "respuesta": "Según el contexto proporcionado, las bonificaciones que se mantienen entre el 1 de enero y el 31 de diciembre de 2026 son:\n\n* **Abono Transporte 30 días para usuarios de 26 a 64 años:** Reducción del **40%**.\n* **Tarjeta Azul:** Reducción del **40%**.\n* **Abono 30 días Joven:** Reducción del **50%**.",
+    "fuentes": [
+      "bocm-20251231-precios_transporte.pdf",
+      "crtm_billetes_tarifas.md"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q09",
+    "tipo": "in-corpus",
+    "pregunta": "Según la resolución oficial del CRTM, ¿se mantienen los precios del transporte público en 2026?",
+    "respuesta": "Sí, según la resolución del CRTM, se aprueba mantener los precios del transporte público en el año 2026, continuando con los mismos precios que existían en el segundo semestre de 2025. \n\nSin embargo, quedan fuera de este acuerdo los billetes sencillos, de ida y vuelta, títulos turísticos y títulos de 10 viajes de autobús de concesiones propias del CRTM con origen/destino en municipios de Castilla y León.",
+    "fuentes": [
+      "bocm-20251231-precios_transporte.pdf",
+      "bocm-20251231-tarifas_transporte.pdf"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q10",
+    "tipo": "in-corpus",
+    "pregunta": "¿Qué incremento se aplica a las tarifas del transporte público en 2026 y qué excepciones hay?",
+    "respuesta": "Se aplica un incremento de un **3 %** sobre las tarifas vigentes.\n\nLas excepciones a este incremento son:\n* El **abono joven**.\n* El **título 10 viajes de Castilla-León**.",
+    "fuentes": [
+      "bocm-20251231-precios_transporte.pdf",
+      "bocm-20251231-tarifas_transporte.pdf"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q11",
+    "tipo": "in-corpus",
+    "pregunta": "¿En qué zona tarifaria se encuentra la parada de Plaza de Castilla?",
+    "respuesta": "La parada de Plaza de Castilla se encuentra en la **zona tarifaria A**.",
+    "fuentes": [
+      "Paradas CRTM.csv"
+    ],
+    "se_abstuvo": false,
+    "correcto": true
+  },
+  {
+    "id": "q12",
+    "tipo": "fuera-de-corpus",
+    "pregunta": "¿Cuánto cuesta un billete de metro en Barcelona?",
+    "respuesta": "No lo sé, no está en los documentos.",
+    "fuentes": [
+      "bocm-20251231-precios_transporte.pdf",
+      "bocm-20251231-tarifas_transporte.pdf"
+    ],
+    "se_abstuvo": true,
+    "correcto": true
+  },
+  {
+    "id": "q13",
+    "tipo": "fuera-de-corpus",
+    "pregunta": "¿Qué requisitos pide la beca MEC para estudiantes universitarios?",
+    "respuesta": "No lo sé, no está en los documentos.",
+    "fuentes": [
+      "bocm-20251231-precios_transporte.pdf",
+      "crtm_faq.md"
+    ],
+    "se_abstuvo": true,
+    "correcto": true
+  },
+  {
+    "id": "q14",
+    "tipo": "fuera-de-corpus",
+    "pregunta": "¿Cuál es el horario de apertura de la estación de Atocha hoy?",
+    "respuesta": "No lo sé, no está en los documentos.",
+    "fuentes": [
+      "Paradas CRTM.csv"
+    ],
+    "se_abstuvo": true,
+    "correcto": true
+  },
+  {
+    "id": "q15",
+    "tipo": "fuera-de-corpus",
+    "pregunta": "¿Qué recomienda el CRTM para viajar en bicicleta por Madrid?",
+    "respuesta": "No lo sé, no está en los documentos.",
+    "fuentes": [
+      "bocm-20251231-precios_transporte.pdf",
+      "bocm-20251231-tarifas_transporte.pdf",
+      "crtm_billetes_tarifas.md"
+    ],
+    "se_abstuvo": true,
+    "correcto": true
+  }
+]
