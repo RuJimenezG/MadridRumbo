@@ -1,19 +1,22 @@
 """
 index.py — Indexación de chunks en ChromaDB persistente.
 
-CORREGIDO (Persona 2): este fichero importaba "from src.chunk import Chunk",
-una clase que ya no existe — el chunk.py real del equipo usa Document de
-LangChain (fragmentar_documentos() -> list[Document]), no mi dataclass Chunk
-original. Esto rompía el import de index.py (y en cascada, el de retrieve.py
-y generate.py). Ahora index_chunks() trabaja directamente con Document:
+index_chunks() trabaja directamente con Document:
   - doc.page_content -> texto del chunk
   - doc.metadata["source"]        -> fuente (rellenada por src/load.py)
   - doc.metadata["chunk_index"]   -> índice (rellenado por src/chunk.py)
 
-ChromaDB guarda embeddings + metadatos (`source`, `chunk_id`) para poder
-mostrar la procedencia de cada chunk recuperado y, si hace falta, regenerar
-el índice desde cero (--recreate-index) tras cambiar de modelo de embeddings
-o de MAX_CHUNKS.
+Durante la indexación, ChoromaDB almacena los embeddings junto con los 
+metadatos "source" y "chunk_id", permitiendo identificar la procedencia de
+los chunks recuperados.
+
+Los embeddings previamente calculados pueden reutilizarse desde
+el fichero JSON configurado, evitando llamadas innecesarias a la
+API durante nuevas indexaciones. Si no existe un fichero válido,
+los embeddings se calculan nuevamente.
+
+La opción --recreate-index permite eliminar y regenerar la colección
+completa cuando cambian el modelo de embeddings, MAX_CHUNKS o el corpus.
 """
 import sys
 from pathlib import Path
